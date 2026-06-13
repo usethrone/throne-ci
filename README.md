@@ -4,11 +4,17 @@
 [![test](https://github.com/usethrone/throne-ci/actions/workflows/test.yml/badge.svg)](https://github.com/usethrone/throne-ci/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-0E0E10.svg)](LICENSE)
 
-<p align="center">
-  <img src="assets/verdict-demo.svg" alt="Throne verdict: FIT TO SHIP for n8n-mcp" width="660">
-</p>
-
 **Stop shipping MCP servers that break on real clients.** This action executes your server in a disposable microVM, replays nine protocol steps against client behaviour calibrated from recorded Claude Code and Cursor traffic, scans the source for security issues, and fails the build when the verdict regresses.
+
+```text
+✓ FIT TO SHIP   ·   n8n-mcp
+
+  claude code   PASS
+  cursor        PASS
+
+  security: not run
+  evidence:  https://usethrone.dev/server/n8n-mcp
+```
 
 Every run links to a public evidence record. Nothing is asserted without the execution that proved it.
 

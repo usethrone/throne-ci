@@ -13,11 +13,13 @@ die() { echo "::error::$*"; exit 1; }
 note() { echo "::notice::$*"; }
 warn() { echo "::warning::$*"; }
 
-# Keep the key out of logs no matter what echoes it later.
-[ -n "${THRONE_KEY:-}" ] && echo "::add-mask::${THRONE_KEY}"
+# Friendly guards for the two required inputs (the most common setup mistake
+# is a missing or misnamed api-key secret).
+[ -n "${THRONE_TARGET:-}" ] || die "no target. Set the 'target' input: an npm package, 'uvx <pypi-name>', or a github.com/owner/repo URL."
+[ -n "${THRONE_KEY:-}" ] || die "api-key is empty. Add your Throne key as a repo secret named THRONE_API_KEY and pass it as 'api-key'. Keys: hello@usethrone.dev"
 
-: "${THRONE_TARGET:?missing target input}"
-: "${THRONE_KEY:?missing api-key input}"
+# Keep the key out of logs no matter what echoes it later.
+echo "::add-mask::${THRONE_KEY}"
 THRONE_API="${THRONE_API:-https://api.usethrone.dev}"
 THRONE_API="${THRONE_API%/}" # tolerate a trailing slash
 THRONE_FAIL_ON="${THRONE_FAIL_ON:-not_fit}"
@@ -105,7 +107,7 @@ while [ "$(date +%s)" -lt "$deadline" ]; do
     echo "  ${progress}"
     last_progress="$progress"
   fi
-  [ "$status" = "complete" ] || [ "$status" = "failed" ] && break
+  if [ "$status" = "complete" ] || [ "$status" = "failed" ]; then break; fi
 done
 echo "::endgroup::"
 
