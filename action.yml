@@ -1,0 +1,76 @@
+name: "Throne MCP Gate"
+description: "Run your MCP server in a microVM, test it against Claude Code and Cursor, and gate the build on the verdict."
+author: "Throne (usethrone.dev)"
+branding:
+  icon: "shield"
+  color: "gray-dark"
+
+inputs:
+  target:
+    description: >-
+      What to scan: an npm package (@scope/name or name), "uvx <pypi-name>",
+      or a github.com/owner/repo URL. Usually the package this repo publishes.
+    required: true
+  api-key:
+    description: "Your Throne API key. Store it in repo secrets and pass it here."
+    required: true
+  fail-on:
+    description: >-
+      Comma-separated verdicts that fail the build. Default "not_fit" (only
+      real protocol failures block). Add "inconclusive" to also block when the
+      server could not be assessed (for example it needs credentials).
+    required: false
+    default: "not_fit"
+  comment-on-pr:
+    description: >-
+      Post a sticky comment with the verdict on the pull request. Requires the
+      workflow to grant `pull-requests: write`. Set to "false" to disable.
+    required: false
+    default: "true"
+  github-token:
+    description: "Token used to post the PR comment. Defaults to the workflow token."
+    required: false
+    default: ${{ github.token }}
+  api-base:
+    description: "Throne API base URL. Override only for self-hosted or testing."
+    required: false
+    default: "https://api.usethrone.dev"
+  timeout-seconds:
+    description: "Give up waiting for the scan after this many seconds."
+    required: false
+    default: "600"
+
+outputs:
+  verdict:
+    description: "fit | not_fit | inconclusive | unknown"
+    value: ${{ steps.gate.outputs.verdict }}
+  reason:
+    description: "When inconclusive: needs_credentials | needs_arguments | needs_environment | unsupported_layout | install_timeout | no_handshake | launch_error"
+    value: ${{ steps.gate.outputs.reason }}
+  security-verdict:
+    description: "clean | review | not_run (review is material, never changes the compatibility verdict)"
+    value: ${{ steps.gate.outputs.security-verdict }}
+  scan-id:
+    description: "The scan id backing this verdict."
+    value: ${{ steps.gate.outputs.scan-id }}
+  record-url:
+    description: "Public evidence record for this verdict."
+    value: ${{ steps.gate.outputs.record-url }}
+  summary:
+    description: "One-line verdict summary from the run."
+    value: ${{ steps.gate.outputs.summary }}
+
+runs:
+  using: "composite"
+  steps:
+    - id: gate
+      shell: bash
+      env:
+        THRONE_TARGET: ${{ inputs.target }}
+        THRONE_KEY: ${{ inputs.api-key }}
+        THRONE_API: ${{ inputs.api-base }}
+        THRONE_FAIL_ON: ${{ inputs.fail-on }}
+        THRONE_TIMEOUT: ${{ inputs.timeout-seconds }}
+        THRONE_COMMENT: ${{ inputs.comment-on-pr }}
+        THRONE_GH_TOKEN: ${{ inputs.github-token }}
+      run: bash "$GITHUB_ACTION_PATH/throne-gate.sh"

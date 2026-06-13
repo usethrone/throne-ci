@@ -1,0 +1,6 @@
+# Shell scripts run on Linux runners: force LF so a Windows checkout never
+# commits CRLF that would break `bash` with a stray carriage return.
+* text=auto eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+*.yml text eol=lf

@@ -1,0 +1,26 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  gate-logic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Offline gate test (mock API)
+        run: bash test/run.sh
+
+  shellcheck:
+    runs-on: ubuntu-latest
+    # Informational: style suggestions should not red-badge the repo, but we
+    # surface them so the gate script stays clean.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - run: shellcheck throne-gate.sh test/run.sh
