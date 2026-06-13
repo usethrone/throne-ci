@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 470" font-family="'Segoe UI',Helvetica,Arial,sans-serif" role="img" aria-label="Throne verdict: FIT TO SHIP for n8n-mcp">
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#15151A"/>
+      <stop offset="1" stop-color="#0E0E10"/>
+    </linearGradient>
+  </defs>
+
+  <!-- card -->
+  <rect x="1.5" y="1.5" width="817" height="467" rx="18" fill="url(#paper)" stroke="#2A2A30" stroke-width="3"/>
+
+  <!-- header: crown + wordmark -->
+  <g transform="translate(40,38)">
+    <path transform="scale(0.34)" fill="#F4EFE6" d="M8 0h48v15H39v26L32 48l-7-7V15H8zM7 42l25 25 25-25v18L32 72 7 60z"/>
+    <text x="36" y="19" fill="#F4EFE6" font-size="22" font-weight="700" letter-spacing="3">THRONE</text>
+  </g>
+  <text x="780" y="52" text-anchor="end" fill="#6E6A61" font-size="14" letter-spacing="1">registry record</text>
+
+  <!-- verdict banner -->
+  <g transform="translate(40,92)">
+    <rect width="740" height="78" rx="12" fill="#12251A" stroke="#1F9D55" stroke-width="2"/>
+    <g transform="translate(26,21)">
+      <rect width="36" height="36" rx="8" fill="#1F9D55"/>
+      <path d="M9 18l6 6 12-13" fill="none" stroke="#0E0E10" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <text x="80" y="51" fill="#33C06E" font-size="34" font-weight="800" letter-spacing="1">FIT TO SHIP</text>
+  </g>
+
+  <!-- target -->
+  <text x="40" y="208" fill="#9A958B" font-size="14">target</text>
+  <rect x="40" y="218" width="180" height="34" rx="8" fill="#1A1A20" stroke="#2A2A30"/>
+  <text x="56" y="241" fill="#F4EFE6" font-size="17" font-family="'JetBrains Mono',Consolas,monospace">n8n-mcp</text>
+
+  <!-- client results table -->
+  <g transform="translate(40,278)" font-size="16">
+    <text x="0" y="0" fill="#9A958B" font-size="14">client compatibility</text>
+
+    <g transform="translate(0,18)">
+      <rect width="500" height="46" rx="8" fill="#15151A" stroke="#2A2A30"/>
+      <text x="20" y="29" fill="#E7E2D8">claude code</text>
+      <g transform="translate(400,12)"><rect width="80" height="22" rx="11" fill="#12251A" stroke="#1F9D55"/><text x="40" y="16" text-anchor="middle" fill="#33C06E" font-weight="700" font-size="13">PASS</text></g>
+    </g>
+    <g transform="translate(0,72)">
+      <rect width="500" height="46" rx="8" fill="#15151A" stroke="#2A2A30"/>
+      <text x="20" y="29" fill="#E7E2D8">cursor</text>
+      <g transform="translate(400,12)"><rect width="80" height="22" rx="11" fill="#12251A" stroke="#1F9D55"/><text x="40" y="16" text-anchor="middle" fill="#33C06E" font-weight="700" font-size="13">PASS</text></g>
+    </g>
+  </g>
+
+  <!-- evidence footer -->
+  <line x1="40" y1="412" x2="780" y2="412" stroke="#2A2A30" stroke-width="1"/>
+  <text x="40" y="440" fill="#9A958B" font-size="14">sealed by THRONE · executed in a disposable microVM, then destroyed · nothing outlives a run</text>
+</svg>
