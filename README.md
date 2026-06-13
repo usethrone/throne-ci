@@ -1,5 +1,7 @@
 # Throne MCP Gate
 
+**English** · [简体中文](README.zh-CN.md) · [Русский](README.ru.md) · [हिन्दी](README.hi.md)
+
 [![Throne MCP Gate on the GitHub Marketplace](https://img.shields.io/badge/Marketplace-Throne%20MCP%20Gate-1F9D55?logo=github&logoColor=white)](https://github.com/marketplace/actions/throne-mcp-gate)
 [![test](https://github.com/usethrone/throne-ci/actions/workflows/test.yml/badge.svg)](https://github.com/usethrone/throne-ci/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-0E0E10.svg)](LICENSE)
