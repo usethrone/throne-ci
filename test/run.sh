@@ -34,8 +34,8 @@ check "$GATE_RC" "0" "exit 0 (gate passes)"
 check "$(getout verdict)" "fit" "verdict output"
 check "$(getout record-url)" "https://usethrone.dev/server/scope-cool-mcp" "clean slug url"
 check "$(getout security-verdict)" "review" "security verdict output"
-grep -q "FIT TO SHIP" "$SUM" && echo "  ok: summary has headline" && pass=$((pass+1)) || { echo "  FAIL: summary headline"; fail=$((fail+1)); }
-grep -q "| cursor | \`WARN\` |" "$SUM" && echo "  ok: per-client table" && pass=$((pass+1)) || { echo "  FAIL: per-client table"; fail=$((fail+1)); }
+if grep -q "FIT TO SHIP" "$SUM"; then echo "  ok: summary has headline"; pass=$((pass+1)); else echo "  FAIL: summary headline"; fail=$((fail+1)); fi
+if grep -q "| cursor | \`WARN\` |" "$SUM"; then echo "  ok: per-client table"; pass=$((pass+1)); else echo "  FAIL: per-client table"; fail=$((fail+1)); fi
 
 echo "== scenario 2: not_fit, fail-on=not_fit -> fail =="
 run_gate "broken-mcp" "good" "not_fit"
@@ -56,7 +56,7 @@ check "$GATE_RC" "1" "exit 1 (strict blocks inconclusive)"
 echo "== scenario 5: bad key -> fast fail, no poll =="
 run_gate "@scope/cool-mcp" "bad" "not_fit"
 check "$GATE_RC" "1" "exit 1 (401)"
-grep -q "rejected the API key" /tmp/gate.log && echo "  ok: clear 401 message" && pass=$((pass+1)) || { echo "  FAIL: 401 message"; fail=$((fail+1)); }
+if grep -q "rejected the API key" /tmp/gate.log; then echo "  ok: clear 401 message"; pass=$((pass+1)); else echo "  FAIL: 401 message"; fail=$((fail+1)); fi
 
 echo ""
 echo "RESULT: ${pass} passed, ${fail} failed"
