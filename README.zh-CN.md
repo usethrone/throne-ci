@@ -1,20 +1,20 @@
-# Throne MCP Gate
+﻿# Throne MCP Gate
 
-[English](README.md) · **简体中文** · [Русский](README.ru.md) · [हिन्दी](README.hi.md)
+[English](README.md) Â· **ç®€ä½“ä¸­æ–‡** Â· [Ð ÑƒÑÑÐºÐ¸Ð¹](README.ru.md) Â· [à¤¹à¤¿à¤¨à¥à¤¦à¥€](README.hi.md)
 
-[![GitHub Marketplace 上的 Throne MCP Gate](https://img.shields.io/badge/Marketplace-Throne%20MCP%20Gate-1F9D55?logo=github&logoColor=white)](https://github.com/marketplace/actions/throne-mcp-gate)
+[![GitHub Marketplace ä¸Šçš„ Throne MCP Gate](https://img.shields.io/badge/Marketplace-Throne%20MCP%20Gate-1F9D55?logo=github&logoColor=white)](https://github.com/marketplace/actions/throne-mcp-gate)
 [![test](https://github.com/usethrone/throne-ci/actions/workflows/test.yml/badge.svg)](https://github.com/usethrone/throne-ci/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-0E0E10.svg)](LICENSE)
 
 <p align="center">
-  <a href="https://usethrone.dev"><img src="assets/hero.png" alt="Throne：粘贴一个 MCP 服务器，得到判定" width="840"></a>
+  <a href="https://usethrone.dev"><img src="assets/hero.png" alt="Throneï¼šç²˜è´´ä¸€ä¸ª MCP æœåŠ¡å™¨ï¼Œå¾—åˆ°åˆ¤å®š" width="840"></a>
 </p>
 
-> 本文档为翻译版本，英文 [README](README.md) 为权威来源。
+> æœ¬æ–‡æ¡£ä¸ºç¿»è¯‘ç‰ˆæœ¬ï¼Œè‹±æ–‡ [README](README.md) ä¸ºæƒå¨æ¥æºã€‚
 
-**不要再发布会在真实客户端里崩溃的 MCP 服务器。** 这个 Action 会在一次性的 microVM 中运行你的服务器，按照从真实 Claude Code 与 Cursor 流量校准出的客户端行为重放九个协议步骤，扫描源码中的安全问题，并在判定结果回退时让构建失败。
+**ä¸è¦å†å‘å¸ƒä¼šåœ¨çœŸå®žå®¢æˆ·ç«¯é‡Œå´©æºƒçš„ MCP æœåŠ¡å™¨ã€‚** è¿™ä¸ª Action ä¼šåœ¨ä¸€æ¬¡æ€§çš„ microVM ä¸­è¿è¡Œä½ çš„æœåŠ¡å™¨ï¼ŒæŒ‰ç…§ä»ŽçœŸå®ž Claude Code ä¸Ž Cursor æµé‡æ ¡å‡†å‡ºçš„å®¢æˆ·ç«¯è¡Œä¸ºé‡æ”¾ä¹ä¸ªåè®®æ­¥éª¤ï¼Œæ‰«ææºç ä¸­çš„å®‰å…¨é—®é¢˜ï¼Œå¹¶åœ¨åˆ¤å®šç»“æžœå›žé€€æ—¶è®©æž„å»ºå¤±è´¥ã€‚
 
-每一次运行都会链接到一份公开的证据记录。没有经过实际执行验证的结论，我们绝不声称。
+æ¯ä¸€æ¬¡è¿è¡Œéƒ½ä¼šé“¾æŽ¥åˆ°ä¸€ä»½å…¬å¼€çš„è¯æ®è®°å½•ã€‚æ²¡æœ‰ç»è¿‡å®žé™…æ‰§è¡ŒéªŒè¯çš„ç»“è®ºï¼Œæˆ‘ä»¬ç»ä¸å£°ç§°ã€‚
 
 ```yaml
 - uses: usethrone/throne-ci@v1
@@ -23,13 +23,13 @@
     api-key: ${{ secrets.THRONE_API_KEY }}
 ```
 
-## 为什么
+## ä¸ºä»€ä¹ˆ
 
-每个 MCP 目录都只是自我申报的条目，没有人真正运行过这些服务器。Throne 会运行：每次扫描都启动一个全新的 Firecracker microVM，从 npm、PyPI 或 GitHub 安装，通过 stdio 启动，运行结束后销毁。最终得到一个可以用来卡合并的判定结果，而且任何人都能查阅背后的证据。
+æ¯ä¸ª MCP ç›®å½•éƒ½åªæ˜¯è‡ªæˆ‘ç”³æŠ¥çš„æ¡ç›®ï¼Œæ²¡æœ‰äººçœŸæ­£è¿è¡Œè¿‡è¿™äº›æœåŠ¡å™¨ã€‚Throne ä¼šè¿è¡Œï¼šæ¯æ¬¡æ‰«æéƒ½å¯åŠ¨ä¸€ä¸ªå…¨æ–°çš„ Firecracker microVMï¼Œä»Ž npmã€PyPI æˆ– GitHub å®‰è£…ï¼Œé€šè¿‡ stdio å¯åŠ¨ï¼Œè¿è¡Œç»“æŸåŽé”€æ¯ã€‚æœ€ç»ˆå¾—åˆ°ä¸€ä¸ªå¯ä»¥ç”¨æ¥å¡åˆå¹¶çš„åˆ¤å®šç»“æžœï¼Œè€Œä¸”ä»»ä½•äººéƒ½èƒ½æŸ¥é˜…èƒŒåŽçš„è¯æ®ã€‚
 
-## 快速开始
+## å¿«é€Ÿå¼€å§‹
 
-为每个 Pull Request 设卡，并把判定结果作为评论回帖：
+ä¸ºæ¯ä¸ª Pull Request è®¾å¡ï¼Œå¹¶æŠŠåˆ¤å®šç»“æžœä½œä¸ºè¯„è®ºå›žå¸–ï¼š
 
 ```yaml
 name: throne-gate
@@ -38,7 +38,7 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write   # 允许该 Action 发布判定评论
+  pull-requests: write   # å…è®¸è¯¥ Action å‘å¸ƒåˆ¤å®šè¯„è®º
 
 jobs:
   gate:
@@ -46,46 +46,46 @@ jobs:
     steps:
       - uses: usethrone/throne-ci@v1
         with:
-          target: "@your-scope/your-mcp-server"   # 或 "uvx your-package" / https://github.com/you/repo
+          target: "@your-scope/your-mcp-server"   # æˆ– "uvx your-package" / https://github.com/you/repo
           api-key: ${{ secrets.THRONE_API_KEY }}
 ```
 
-如果不需要 PR 评论，可删除 `permissions` 块，或设置 `comment-on-pr: false`。
+å¦‚æžœä¸éœ€è¦ PR è¯„è®ºï¼Œå¯åˆ é™¤ `permissions` å—ï¼Œæˆ–è®¾ç½® `comment-on-pr: false`ã€‚
 
-## 输入
+## è¾“å…¥
 
-| 参数 | 必填 | 默认值 | 含义 |
+| å‚æ•° | å¿…å¡« | é»˜è®¤å€¼ | å«ä¹‰ |
 |---|---|---|---|
-| `target` | 是 | | npm 包（`@scope/name` 或 `name`）、`uvx <pypi-name>`，或 `https://github.com/owner/repo` |
-| `api-key` | 是 | | 你的 Throne API 密钥。请存放在仓库 secrets 中 |
-| `fail-on` | 否 | `not_fit` | 触发构建失败的判定，逗号分隔。加入 `inconclusive` 即为严格模式 |
-| `comment-on-pr` | 否 | `true` | 在 PR 上发布固定的判定评论（需要 `pull-requests: write`） |
-| `github-token` | 否 | `${{ github.token }}` | 用于发布 PR 评论的令牌 |
-| `api-base` | 否 | `https://api.usethrone.dev` | 仅在自托管或测试时才需要覆盖 |
-| `timeout-seconds` | 否 | `600` | 等待扫描的最长秒数 |
+| `target` | æ˜¯ | | npm åŒ…ï¼ˆ`@scope/name` æˆ– `name`ï¼‰ã€`uvx <pypi-name>`ï¼Œæˆ– `https://github.com/owner/repo` |
+| `api-key` | æ˜¯ | | ä½ çš„ Throne API å¯†é’¥ã€‚è¯·å­˜æ”¾åœ¨ä»“åº“ secrets ä¸­ |
+| `fail-on` | å¦ | `not_fit` | è§¦å‘æž„å»ºå¤±è´¥çš„åˆ¤å®šï¼Œé€—å·åˆ†éš”ã€‚åŠ å…¥ `inconclusive` å³ä¸ºä¸¥æ ¼æ¨¡å¼ |
+| `comment-on-pr` | å¦ | `true` | åœ¨ PR ä¸Šå‘å¸ƒå›ºå®šçš„åˆ¤å®šè¯„è®ºï¼ˆéœ€è¦ `pull-requests: write`ï¼‰ |
+| `github-token` | å¦ | `${{ github.token }}` | ç”¨äºŽå‘å¸ƒ PR è¯„è®ºçš„ä»¤ç‰Œ |
+| `api-base` | å¦ | `https://api.usethrone.dev` | ä»…åœ¨è‡ªæ‰˜ç®¡æˆ–æµ‹è¯•æ—¶æ‰éœ€è¦è¦†ç›– |
+| `timeout-seconds` | å¦ | `600` | ç­‰å¾…æ‰«æçš„æœ€é•¿ç§’æ•° |
 
-## 输出
+## è¾“å‡º
 
-| 输出 | 含义 |
+| è¾“å‡º | å«ä¹‰ |
 |---|---|
-| `verdict` | `fit`、`not_fit`、`inconclusive` 或 `unknown` |
-| `reason` | 当 inconclusive 时：`needs_credentials`、`needs_arguments`、`needs_environment`、`unsupported_layout`、`install_timeout`、`no_handshake` 或 `launch_error` |
-| `security-verdict` | `clean`、`review` 或 `not_run` |
-| `scan-id` | 支撑该判定的扫描 ID |
-| `record-url` | 公开证据记录的链接 |
-| `summary` | 一行判定摘要 |
+| `verdict` | `fit`ã€`not_fit`ã€`inconclusive` æˆ– `unknown` |
+| `reason` | å½“ inconclusive æ—¶ï¼š`needs_credentials`ã€`needs_arguments`ã€`needs_environment`ã€`unsupported_layout`ã€`install_timeout`ã€`no_handshake` æˆ– `launch_error` |
+| `security-verdict` | `clean`ã€`review` æˆ– `not_run` |
+| `scan-id` | æ”¯æ’‘è¯¥åˆ¤å®šçš„æ‰«æ ID |
+| `record-url` | å…¬å¼€è¯æ®è®°å½•çš„é“¾æŽ¥ |
+| `summary` | ä¸€è¡Œåˆ¤å®šæ‘˜è¦ |
 
-## 判定结果的含义
+## åˆ¤å®šç»“æžœçš„å«ä¹‰
 
-- **fit** — 在两个客户端画像上都完全兼容协议。可以放心发布。
-- **not_fit** — 真实的协议失败。这是默认情况下唯一会卡住合并的判定。
-- **inconclusive** — 服务器运行了，但无法被完整评估。`reason` 会说明原因。最常见的是 `needs_credentials`：服务器安装并正常启动，然后因缺少 API 密钥而退出。这通常没有问题，因此除非你把它加入 `fail-on`，否则 `inconclusive` **不会**卡住合并。
+- **fit** â€” åœ¨ä¸¤ä¸ªå®¢æˆ·ç«¯ç”»åƒä¸Šéƒ½å®Œå…¨å…¼å®¹åè®®ã€‚å¯ä»¥æ”¾å¿ƒå‘å¸ƒã€‚
+- **not_fit** â€” çœŸå®žçš„åè®®å¤±è´¥ã€‚è¿™æ˜¯é»˜è®¤æƒ…å†µä¸‹å”¯ä¸€ä¼šå¡ä½åˆå¹¶çš„åˆ¤å®šã€‚
+- **inconclusive** â€” æœåŠ¡å™¨è¿è¡Œäº†ï¼Œä½†æ— æ³•è¢«å®Œæ•´è¯„ä¼°ã€‚`reason` ä¼šè¯´æ˜ŽåŽŸå› ã€‚æœ€å¸¸è§çš„æ˜¯ `needs_credentials`ï¼šæœåŠ¡å™¨å®‰è£…å¹¶æ­£å¸¸å¯åŠ¨ï¼Œç„¶åŽå› ç¼ºå°‘ API å¯†é’¥è€Œé€€å‡ºã€‚è¿™é€šå¸¸æ²¡æœ‰é—®é¢˜ï¼Œå› æ­¤é™¤éžä½ æŠŠå®ƒåŠ å…¥ `fail-on`ï¼Œå¦åˆ™ `inconclusive` **ä¸ä¼š**å¡ä½åˆå¹¶ã€‚
 
-安全发现属于另一条独立的判定轴。`review` 的安全判定是给人审阅的材料，它不会改变兼容性判定，也不会单独卡住合并。
+å®‰å…¨å‘çŽ°å±žäºŽå¦ä¸€æ¡ç‹¬ç«‹çš„åˆ¤å®šè½´ã€‚`review` çš„å®‰å…¨åˆ¤å®šæ˜¯ç»™äººå®¡é˜…çš„ææ–™ï¼Œå®ƒä¸ä¼šæ”¹å˜å…¼å®¹æ€§åˆ¤å®šï¼Œä¹Ÿä¸ä¼šå•ç‹¬å¡ä½åˆå¹¶ã€‚
 
-## 严格模式
+## ä¸¥æ ¼æ¨¡å¼
 
-如果你也希望在服务器无法被评估时卡住合并：
+å¦‚æžœä½ ä¹Ÿå¸Œæœ›åœ¨æœåŠ¡å™¨æ— æ³•è¢«è¯„ä¼°æ—¶å¡ä½åˆå¹¶ï¼š
 
 ```yaml
         with:
@@ -94,18 +94,18 @@ jobs:
           fail-on: "not_fit,inconclusive"
 ```
 
-## 可审计性
+## å¯å®¡è®¡æ€§
 
-这是一个 composite action，整个门禁就是一份可读的 shell 脚本 [`throne-gate.sh`](./throne-gate.sh)：没有编译后的二进制文件，没有打包的 JavaScript，没有任何传递依赖。对于一个放进发布流程的工具，你应该能读懂它运行的每一行。这里你可以。
+è¿™æ˜¯ä¸€ä¸ª composite actionï¼Œæ•´ä¸ªé—¨ç¦å°±æ˜¯ä¸€ä»½å¯è¯»çš„ shell è„šæœ¬ [`throne-gate.sh`](./throne-gate.sh)ï¼šæ²¡æœ‰ç¼–è¯‘åŽçš„äºŒè¿›åˆ¶æ–‡ä»¶ï¼Œæ²¡æœ‰æ‰“åŒ…çš„ JavaScriptï¼Œæ²¡æœ‰ä»»ä½•ä¼ é€’ä¾èµ–ã€‚å¯¹äºŽä¸€ä¸ªæ”¾è¿›å‘å¸ƒæµç¨‹çš„å·¥å…·ï¼Œä½ åº”è¯¥èƒ½è¯»æ‡‚å®ƒè¿è¡Œçš„æ¯ä¸€è¡Œã€‚è¿™é‡Œä½ å¯ä»¥ã€‚
 
-## 获取密钥
+## èŽ·å–å¯†é’¥
 
-创始客户密钥为 `$29/月`，价格锁定 12 个月。请发邮件至 **hello@usethrone.dev**，或查看 [usethrone.dev/pricing](https://usethrone.dev/pricing)。
+åˆ›å§‹å®¢æˆ·å¯†é’¥ä¸º `$29/æœˆ`ï¼Œä»·æ ¼é”å®š 12 ä¸ªæœˆã€‚è¯·å‘é‚®ä»¶è‡³ **hello@usethrone.dev**ï¼Œæˆ–æŸ¥çœ‹ [usethrone.dev/pricing](https://usethrone.dev/pricing)ã€‚
 
-## 佩戴王冠
+## ä½©æˆ´çŽ‹å† 
 
-如果你的服务器判定为 `fit`，它的证据记录会提供一个实时的 README 徽章，徽章会根据最新一次扫描自动刷新。如果某次发布破坏了判定结果，徽章会自动如实显示。
+å¦‚æžœä½ çš„æœåŠ¡å™¨åˆ¤å®šä¸º `fit`ï¼Œå®ƒçš„è¯æ®è®°å½•ä¼šæä¾›ä¸€ä¸ªå®žæ—¶çš„ README å¾½ç« ï¼Œå¾½ç« ä¼šæ ¹æ®æœ€æ–°ä¸€æ¬¡æ‰«æè‡ªåŠ¨åˆ·æ–°ã€‚å¦‚æžœæŸæ¬¡å‘å¸ƒç ´åäº†åˆ¤å®šç»“æžœï¼Œå¾½ç« ä¼šè‡ªåŠ¨å¦‚å®žæ˜¾ç¤ºã€‚
 
-## 许可证
+## è®¸å¯è¯
 
-MIT。详见 [LICENSE](./LICENSE)。
+MITã€‚è¯¦è§ [LICENSE](./LICENSE)ã€‚
