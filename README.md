@@ -1,6 +1,6 @@
-﻿# Throne MCP Gate
+# Throne MCP Gate
 
-**English** Â· [ç®€ä½“ä¸­æ–‡](README.zh-CN.md) Â· [Ð ÑƒÑÑÐºÐ¸Ð¹](README.ru.md) Â· [à¤¹à¤¿à¤¨à¥à¤¦à¥€](README.hi.md)
+**English** · [简体中文](README.zh-CN.md) · [Русский](README.ru.md) · [हिन्दी](README.hi.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Deutsch](README.de.md)
 
 [![Throne MCP Gate on the GitHub Marketplace](https://img.shields.io/badge/Marketplace-Throne%20MCP%20Gate-1F9D55?logo=github&logoColor=white)](https://github.com/marketplace/actions/throne-mcp-gate)
 [![test](https://github.com/usethrone/throne-ci/actions/workflows/test.yml/badge.svg)](https://github.com/usethrone/throne-ci/actions/workflows/test.yml)
@@ -79,14 +79,14 @@ Drop the `permissions` block if you do not want PR comments, or set `comment-on-
         with:
           target: "@your-scope/your-mcp-server"
           api-key: ${{ secrets.THRONE_API_KEY }}
-      - run: echo "Verdict was ${{ steps.throne.outputs.verdict }} â€” ${{ steps.throne.outputs.record-url }}"
+      - run: echo "Verdict was ${{ steps.throne.outputs.verdict }} — ${{ steps.throne.outputs.record-url }}"
 ```
 
 ## What the verdict means
 
-- **fit** â€” full protocol compatibility on both client profiles. Safe to ship.
-- **not_fit** â€” a real protocol failure. This is the only verdict that blocks by default.
-- **inconclusive** â€” the server ran but could not be fully assessed. The `reason` says why. The most common is `needs_credentials`: the server installs and launches cleanly, then exits asking for an API key. That is usually fine, so `inconclusive` does **not** block unless you add it to `fail-on`.
+- **fit** — full protocol compatibility on both client profiles. Safe to ship.
+- **not_fit** — a real protocol failure. This is the only verdict that blocks by default.
+- **inconclusive** — the server ran but could not be fully assessed. The `reason` says why. The most common is `needs_credentials`: the server installs and launches cleanly, then exits asking for an API key. That is usually fine, so `inconclusive` does **not** block unless you add it to `fail-on`.
 
 Security findings are a separate axis. A `review` security verdict is material for a human to read; it never changes the compatibility verdict and never blocks a merge on its own.
 
