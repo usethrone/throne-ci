@@ -100,7 +100,7 @@ jobs:
 
 ## Как получить ключ
 
-Ключи для первых клиентов стоят `$29/мес` с фиксацией цены на 12 месяцев. Напишите на **hello@usethrone.dev** или смотрите [usethrone.dev/pricing](https://usethrone.dev/pricing).
+Throne набирает небольшую группу founding design partners. Запросите ключ по адресу **hello@usethrone.dev** или подайте заявку на [usethrone.dev/pricing](https://usethrone.dev/pricing). Для бесплатного сканирования на [usethrone.dev](https://usethrone.dev) ключ не нужен.
 
 ## Носите корону
 

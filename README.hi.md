@@ -100,7 +100,7 @@ jobs:
 
 ## key कैसे पाएँ
 
-फ़ाउंडिंग-कस्टमर key `$29/माह` है, 12 महीने के लिए मूल्य लॉक। **hello@usethrone.dev** पर ईमेल करें या [usethrone.dev/pricing](https://usethrone.dev/pricing) देखें।
+Throne कुछ चुनिंदा फ़ाउंडिंग डिज़ाइन पार्टनर्स को शामिल कर रहा है। **hello@usethrone.dev** पर key का अनुरोध करें या [usethrone.dev/pricing](https://usethrone.dev/pricing) पर आवेदन करें। [usethrone.dev](https://usethrone.dev) पर मुफ़्त स्कैन के लिए किसी key की ज़रूरत नहीं है।
 
 ## ताज पहनें
 

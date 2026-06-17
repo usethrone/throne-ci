@@ -100,7 +100,7 @@ jobs:
 
 ## 获取密钥
 
-创始客户密钥为 `$29/月`，价格锁定 12 个月。请发邮件至 **hello@usethrone.dev**，或查看 [usethrone.dev/pricing](https://usethrone.dev/pricing)。
+Throne 正在招募一小批创始设计合作伙伴。请发送邮件至 **hello@usethrone.dev** 申请密钥，或在 [usethrone.dev/pricing](https://usethrone.dev/pricing) 提交申请。[usethrone.dev](https://usethrone.dev) 上的免费扫描无需密钥。
 
 ## 佩戴王冠
 

@@ -107,7 +107,7 @@ PR 코멘트를 원하지 않으면 `permissions` 블록을 제거하거나 `com
 
 ## 키 받기
 
-파운딩 커스터머 키는 `$29/월`이며 12개월 가격 고정이 포함됩니다. **hello@usethrone.dev** 로 이메일을 보내거나 [usethrone.dev/pricing](https://usethrone.dev/pricing) 을 확인하세요.
+Throne는 소수의 파운딩 디자인 파트너를 모집하고 있습니다. **hello@usethrone.dev** 로 키를 요청하거나 [usethrone.dev/pricing](https://usethrone.dev/pricing) 에서 신청하세요. [usethrone.dev](https://usethrone.dev) 의 무료 스캔에는 키가 필요하지 않습니다.
 
 ## 왕관을 쓰세요
 

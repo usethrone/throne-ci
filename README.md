@@ -107,7 +107,7 @@ This is a composite action. The entire gate is one readable shell script, [`thro
 
 ## Getting a key
 
-Founding-customer keys are `$29/mo` with a 12-month price lock. Email **hello@usethrone.dev** or see [usethrone.dev/pricing](https://usethrone.dev/pricing).
+Throne is onboarding a small group of founding design partners. Request a key at **hello@usethrone.dev** or apply at [usethrone.dev/pricing](https://usethrone.dev/pricing). The free scan at [usethrone.dev](https://usethrone.dev) needs no key.
 
 ## Wear the crown
 
