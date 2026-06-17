@@ -107,7 +107,7 @@ Dies ist eine Composite Action. Das gesamte Gate ist ein einziges, lesbares Shel
 
 ## Einen Schlüssel erhalten
 
-Founding-Customer-Schlüssel kosten `$29/Monat` mit 12-monatiger Preisbindung. Schreiben Sie an **hello@usethrone.dev** oder besuchen Sie [usethrone.dev/pricing](https://usethrone.dev/pricing).
+Throne nimmt eine kleine Gruppe von Founding Design Partnern auf. Fordern Sie einen Schlüssel unter **hello@usethrone.dev** an oder bewerben Sie sich auf [usethrone.dev/pricing](https://usethrone.dev/pricing). Der kostenlose Scan auf [usethrone.dev](https://usethrone.dev) benötigt keinen Schlüssel.
 
 ## Die Krone tragen
 
