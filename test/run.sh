@@ -58,6 +58,23 @@ run_gate "@scope/cool-mcp" "bad" "not_fit"
 check "$GATE_RC" "1" "exit 1 (401)"
 if grep -q "rejected the API key" /tmp/gate.log; then echo "  ok: clear 401 message"; pass=$((pass+1)); else echo "  FAIL: 401 message"; fail=$((fail+1)); fi
 
+echo "== scenario 6: missing jq -> clear preflight error, no submit =="
+# Run the gate with a PATH that exposes curl but not jq, so the dependency
+# guard fires before any network call. Pre-create everything that needs the
+# real PATH first (mktemp, curl, bash) — trimming PATH below would otherwise
+# hide those too; the absolute bash path keeps the interpreter reachable.
+BINDIR=$(mktemp -d); OUT=$(mktemp); SUM=$(mktemp)
+BASH_BIN=$(command -v bash)
+ln -s "$(command -v curl)" "${BINDIR}/curl"
+PATH="$BINDIR" GITHUB_OUTPUT="$OUT" GITHUB_STEP_SUMMARY="$SUM" GITHUB_EVENT_NAME="push" \
+  THRONE_TARGET="@scope/cool-mcp" THRONE_KEY="good" THRONE_API="$API" THRONE_FAIL_ON="not_fit" \
+  THRONE_TIMEOUT="60" THRONE_COMMENT="false" \
+    "$BASH_BIN" "$GATE" >/tmp/gate.log 2>&1
+check "$?" "1" "exit 1 (missing jq)"
+if grep -q "'jq' is not installed" /tmp/gate.log; then echo "  ok: clear missing-jq message"; pass=$((pass+1)); else echo "  FAIL: missing-jq message"; fail=$((fail+1)); fi
+if grep -q "scan_id" "$OUT"; then echo "  FAIL: submitted despite missing jq"; fail=$((fail+1)); else echo "  ok: no submit before dependency check"; pass=$((pass+1)); fi
+rm -rf "$BINDIR"
+
 echo ""
 echo "RESULT: ${pass} passed, ${fail} failed"
 [ "$fail" = "0" ]

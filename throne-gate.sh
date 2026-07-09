@@ -13,6 +13,13 @@ die() { echo "::error::$*"; exit 1; }
 note() { echo "::notice::$*"; }
 warn() { echo "::warning::$*"; }
 
+# curl and jq are preinstalled on GitHub-hosted runners, but this action also
+# supports self-hosted runners (see api-base). Fail clearly if either is absent
+# rather than crashing mid-scan with a cryptic "command not found".
+for dep in curl jq; do
+  command -v "$dep" >/dev/null 2>&1 || die "'${dep}' is not installed on this runner. Throne needs both curl and jq; they are preinstalled on GitHub-hosted runners, so install ${dep} on your self-hosted runner."
+done
+
 # Friendly guards for the two required inputs (the most common setup mistake
 # is a missing or misnamed api-key secret).
 [ -n "${THRONE_TARGET:-}" ] || die "no target. Set the 'target' input: an npm package, 'uvx <pypi-name>', or a github.com/owner/repo URL."
