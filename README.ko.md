@@ -64,7 +64,7 @@ PR 코멘트를 원하지 않으면 `permissions` 블록을 제거하거나 `com
 
 ## 출력
 
-| 출력 | 의미 |
+| 출력 | 의미 | 
 |---|---|
 | `verdict` | `fit`, `not_fit`, `inconclusive`, 또는 `unknown` |
 | `reason` | inconclusive일 때: `needs_credentials`, `needs_arguments`, `needs_environment`, `unsupported_layout`, `install_timeout`, `no_handshake`, 또는 `launch_error` |
