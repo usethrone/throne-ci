@@ -75,6 +75,40 @@ if grep -q "'jq' is not installed" /tmp/gate.log; then echo "  ok: clear missing
 if grep -q "scan_id" "$OUT"; then echo "  FAIL: submitted despite missing jq"; fail=$((fail+1)); else echo "  ok: no submit before dependency check"; pass=$((pass+1)); fi
 rm -rf "$BINDIR"
 
+echo "== scenario 7: fit pypi via 'uvx', slug from normalized name =="
+run_gate "uvx some-pypi-mcp" "good" "not_fit"
+check "$GATE_RC" "0" "exit 0 (gate passes)"
+check "$(getout verdict)" "fit" "verdict output"
+check "$(getout record-url)" "https://usethrone.dev/server/some-pypi-mcp" "pypi slug url"
+check "$(getout security-verdict)" "clean" "clean security verdict"
+if grep -q "no findings" "$SUM"; then echo "  ok: clean security line"; pass=$((pass+1)); else echo "  FAIL: clean security line"; fail=$((fail+1)); fi
+
+echo "== scenario 8: scan status failed -> die with clear message =="
+run_gate "flaky-mcp" "good" "not_fit"
+check "$GATE_RC" "1" "exit 1 (scan failed)"
+if grep -q "sandbox exploded" /tmp/gate.log; then echo "  ok: surfaces failure detail"; pass=$((pass+1)); else echo "  FAIL: failure detail"; fail=$((fail+1)); fi
+
+echo "== scenario 9: unknown verdict, no clients -> passes, no client table =="
+run_gate "weird-mcp" "good" "not_fit"
+check "$GATE_RC" "0" "exit 0 (unknown not in fail-on)"
+check "$(getout verdict)" "unknown" "verdict output"
+if grep -q "| Client | Result |" "$SUM"; then echo "  FAIL: client table for empty clients"; fail=$((fail+1)); else echo "  ok: no client table when no clients"; pass=$((pass+1)); fi
+
+echo "== scenario 10: non-numeric timeout -> fast fail, no submit =="
+OUT=$(mktemp); SUM=$(mktemp)
+GITHUB_OUTPUT="$OUT" GITHUB_STEP_SUMMARY="$SUM" GITHUB_EVENT_NAME="push" \
+THRONE_TARGET="@scope/cool-mcp" THRONE_KEY="good" THRONE_API="$API" THRONE_FAIL_ON="not_fit" \
+THRONE_TIMEOUT="10m" THRONE_COMMENT="false" \
+  bash "$GATE" >/tmp/gate.log 2>&1
+check "$?" "1" "exit 1 (bad timeout)"
+if grep -q "timeout-seconds must be a whole number" /tmp/gate.log; then echo "  ok: clear timeout error"; pass=$((pass+1)); else echo "  FAIL: timeout error message"; fail=$((fail+1)); fi
+if grep -q "scan_id" "$OUT"; then echo "  FAIL: submitted despite bad timeout"; fail=$((fail+1)); else echo "  ok: no submit before validation"; pass=$((pass+1)); fi
+
+echo "== scenario 11: typo in fail-on -> warns and does not silently block =="
+run_gate "broken-mcp" "good" "notfit"
+check "$GATE_RC" "0" "exit 0 (typo'd token never matches)"
+if grep -q "is not a known verdict" /tmp/gate.log; then echo "  ok: warns on unknown fail-on token"; pass=$((pass+1)); else echo "  FAIL: unknown fail-on warning"; fail=$((fail+1)); fi
+
 echo ""
 echo "RESULT: ${pass} passed, ${fail} failed"
 [ "$fail" = "0" ]

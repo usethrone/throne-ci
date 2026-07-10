@@ -35,6 +35,25 @@ FIXTURES = {
         "target": {"type": "github", "normalized": "https://github.com/Owner/Repo-Name.git"},
         "clients": [{"name": "claude code", "steps": [{"status": "skipped"}]}],
     },
+    "fit-pypi": {
+        "status": "complete",
+        "verdict": {"value": "fit", "reason": None, "summary": "0 fail / 0 warn across 2 clients"},
+        "security": {"verdict": "clean", "findings": []},
+        "target": {"type": "pypi", "normalized": "some-pypi-mcp"},
+        "clients": [{"name": "claude code", "steps": [{"status": "pass"}]}],
+    },
+    "failed-scan": {
+        "status": "failed",
+        "error": "sandbox exploded",
+        "target": {"type": "npm", "normalized": "flaky-mcp"},
+    },
+    "unknown-verdict": {
+        "status": "complete",
+        "verdict": {"value": "unknown", "reason": None, "summary": ""},
+        "security": {"verdict": "not_run", "findings": []},
+        "target": {"type": "npm", "normalized": "weird-mcp"},
+        "clients": [],
+    },
 }
 
 # target string -> fixture key
@@ -42,6 +61,9 @@ TARGET_MAP = {
     "@scope/cool-mcp": "fit-npm",
     "broken-mcp": "not-fit",
     "https://github.com/Owner/Repo-Name": "inc-creds-gh",
+    "uvx some-pypi-mcp": "fit-pypi",
+    "flaky-mcp": "failed-scan",
+    "weird-mcp": "unknown-verdict",
 }
 
 _LAST = {}
