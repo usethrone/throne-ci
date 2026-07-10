@@ -33,6 +33,35 @@ THRONE_FAIL_ON="${THRONE_FAIL_ON:-not_fit}"
 THRONE_TIMEOUT="${THRONE_TIMEOUT:-600}"
 THRONE_COMMENT="${THRONE_COMMENT:-true}"
 
+# timeout-seconds feeds bash arithmetic below; a non-numeric value (e.g. "10m")
+# would blow up mid-run with a cryptic arithmetic error. Guard it up front.
+case "$THRONE_TIMEOUT" in
+  ''|*[!0-9]*) die "timeout-seconds must be a whole number of seconds, got '${THRONE_TIMEOUT}'." ;;
+esac
+[ "$THRONE_TIMEOUT" -gt 0 ] || die "timeout-seconds must be greater than 0, got '${THRONE_TIMEOUT}'."
+
+# Accept the usual truthy spellings for the boolean inputs so "True"/"YES" do
+# not silently disable the PR comment.
+THRONE_COMMENT=$(printf '%s' "$THRONE_COMMENT" | tr '[:upper:]' '[:lower:]')
+case "$THRONE_COMMENT" in
+  true|yes|1|on) THRONE_COMMENT="true" ;;
+  *) THRONE_COMMENT="false" ;;
+esac
+
+# A typo in fail-on (e.g. "notfit") would parse fine and then never match any
+# verdict, silently disabling the gate. Warn on any token we do not recognise
+# so a misconfigured gate is loud, not silently green.
+_KNOWN_VERDICTS="fit not_fit inconclusive unknown"
+IFS=',' read -ra _FAIL_TOKENS <<< "$THRONE_FAIL_ON"
+for _tok in "${_FAIL_TOKENS[@]}"; do
+  _tok=$(printf '%s' "$_tok" | tr -d '[:space:]')
+  [ -z "$_tok" ] && continue
+  case " ${_KNOWN_VERDICTS} " in
+    *" ${_tok} "*) ;;
+    *) warn "fail-on contains '${_tok}', which is not a known verdict (${_KNOWN_VERDICTS// /, }). It will never match, so the gate may never block. Check for a typo." ;;
+  esac
+done
+
 # The clean, canonical record URL for a (type, normalized) target. Mirrors the
 # website's slugFor so the CI link and the public page never disagree.
 record_url() {
@@ -90,8 +119,13 @@ for attempt in 1 2 3; do
     429) die "Throne rate-limited this key (429): 30 scans per hour. Wait and re-run." ;;
     400|422) die "Throne rejected the target '${THRONE_TARGET}' (${code}): $(printf '%s' "$body" | jq -r '.error // .detail // empty')" ;;
   esac
-  echo "submit attempt ${attempt} failed (HTTP ${code}); retrying..."
-  sleep $(( attempt * 3 ))
+  # Do not sleep after the final attempt — we are about to give up anyway.
+  if [ "$attempt" -lt 3 ]; then
+    echo "submit attempt ${attempt} failed (HTTP ${code}); retrying..."
+    sleep $(( attempt * 3 ))
+  else
+    echo "submit attempt ${attempt} failed (HTTP ${code})."
+  fi
 done
 [ -n "$scan_id" ] || die "Could not submit the scan after 3 attempts (last HTTP ${code:-000}). Likely transient; re-run the job."
 
