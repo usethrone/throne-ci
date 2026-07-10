@@ -38,6 +38,12 @@ permissions:
   contents: read
   pull-requests: write   # lets the action post the verdict comment
 
+# One in-flight scan per branch: a new push cancels the previous run so two
+# jobs never race to post the sticky comment.
+concurrency:
+  group: throne-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   gate:
     runs-on: ubuntu-latest
@@ -48,7 +54,7 @@ jobs:
           api-key: ${{ secrets.THRONE_API_KEY }}
 ```
 
-Drop the `permissions` block if you do not want PR comments, or set `comment-on-pr: false`.
+Drop the `permissions` block if you do not want PR comments, or set `comment-on-pr: false`. The PR comment uses the `gh` CLI, which is preinstalled on GitHub-hosted runners; on a self-hosted runner without it, the comment is skipped and the verdict still lands in the job summary.
 
 ## Inputs
 
