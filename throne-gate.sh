@@ -129,19 +129,47 @@ for attempt in 1 2 3; do
 done
 [ -n "$scan_id" ] || die "Could not submit the scan after 3 attempts (last HTTP ${code:-000}). Likely transient; re-run the job."
 
-echo "scan_id=${scan_id}" >> "$GITHUB_OUTPUT"
+# The key must match action.yml's `scan-id` output exactly; GitHub does not
+# fuzzy-match `scan_id` to `scan-id`.
+echo "scan-id=${scan_id}" >> "$GITHUB_OUTPUT"
 note "Throne scan ${scan_id} queued for ${THRONE_TARGET}"
 
 # -------------------------------------------------------------------- poll ---
+
+# Internal knob (not an action input): the offline test suite shrinks this so
+# the scenarios do not each sit through 8-second sleeps.
+poll_interval="${THRONE_POLL_INTERVAL:-8}"
+case "$poll_interval" in ''|*[!0-9]*|0) poll_interval=8 ;; esac
 
 deadline=$(( $(date +%s) + THRONE_TIMEOUT ))
 status="running"
 scan="{}"
 last_progress=""
+missing=0
 echo "::group::Throne scan ${THRONE_TARGET}"
 while [ "$(date +%s)" -lt "$deadline" ]; do
-  sleep 8
-  scan=$(curl -sS -m 30 "${THRONE_API}/api/scans/${scan_id}" 2>/dev/null || echo '{}')
+  sleep "$poll_interval"
+  resp=$(curl -sS -m 30 -w $'\n%{http_code}' "${THRONE_API}/api/scans/${scan_id}" \
+    -H "Authorization: Bearer ${THRONE_KEY}" 2>/dev/null) || resp=$'\n000'
+  code=$(printf '%s' "$resp" | tail -n1)
+  body=$(printf '%s' "$resp" | sed '$d')
+  # A 404 means the API no longer knows the scan we just submitted. One could
+  # be a routing blip; three in a row means it is gone, and polling until the
+  # timeout would just burn ten minutes to report the same thing.
+  if [ "$code" = "404" ]; then
+    missing=$((missing + 1))
+    if [ "$missing" -ge 3 ]; then
+      echo "::endgroup::"
+      die "Throne no longer knows scan ${scan_id} (three 404s in a row). Likely transient; re-run the job."
+    fi
+    continue
+  fi
+  missing=0
+  # Anything else non-2xx (5xx, 000 network error) or a non-JSON body is
+  # transient: keep the last good state and try again next tick.
+  case "$code" in 2*) ;; *) continue ;; esac
+  printf '%s' "$body" | jq -e . >/dev/null 2>&1 || continue
+  scan="$body"
   status=$(printf '%s' "$scan" | jq -r '.status // "polling"')
   progress=$(printf '%s' "$scan" | jq -r '.progress // empty')
   if [ -n "$progress" ] && [ "$progress" != "$last_progress" ]; then
