@@ -64,9 +64,15 @@ TARGET_MAP = {
     "uvx some-pypi-mcp": "fit-pypi",
     "flaky-mcp": "failed-scan",
     "weird-mcp": "unknown-verdict",
+    # Accepted on POST, then every GET 404s — the scan vanished server-side.
+    "vanished-mcp": "vanished",
+    # First two GETs return a 500, then the fit-pypi fixture: the poll loop
+    # must ride out transient server errors without corrupting its state.
+    "wobbly-mcp": "wobbly",
 }
 
 _LAST = {}
+_WOBBLES = {"left": 2}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -99,8 +105,13 @@ class Handler(BaseHTTPRequestHandler):
         if self.path.startswith("/api/scans/"):
             scan_id = self.path.rsplit("/", 1)[-1]
             key = _LAST.get(scan_id)
-            if not key:
+            if not key or key == "vanished":
                 return self._send(404, {"error": "scan not found"})
+            if key == "wobbly":
+                if _WOBBLES["left"] > 0:
+                    _WOBBLES["left"] -= 1
+                    return self._send(500, {"error": "hiccup"})
+                key = "fit-pypi"
             return self._send(200, FIXTURES[key])
         self._send(404, {"error": "nope"})
 

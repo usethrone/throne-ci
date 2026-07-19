@@ -22,7 +22,7 @@ run_gate() {
   OUT=$(mktemp); SUM=$(mktemp)
   GITHUB_OUTPUT="$OUT" GITHUB_STEP_SUMMARY="$SUM" GITHUB_EVENT_NAME="push" \
   THRONE_TARGET="$1" THRONE_KEY="$2" THRONE_API="$API" THRONE_FAIL_ON="$3" \
-  THRONE_TIMEOUT="60" THRONE_COMMENT="false" \
+  THRONE_TIMEOUT="60" THRONE_COMMENT="false" THRONE_POLL_INTERVAL="1" \
     bash "$GATE" >/tmp/gate.log 2>&1
   GATE_RC=$?
 }
@@ -32,6 +32,7 @@ echo "== scenario 1: fit npm, fail-on=not_fit -> pass =="
 run_gate "@scope/cool-mcp" "good" "not_fit"
 check "$GATE_RC" "0" "exit 0 (gate passes)"
 check "$(getout verdict)" "fit" "verdict output"
+check "$(getout scan-id)" "scan-fit-npm" "scan-id output (matches action.yml's name)"
 check "$(getout record-url)" "https://usethrone.dev/server/scope-cool-mcp" "clean slug url"
 check "$(getout security-verdict)" "review" "security verdict output"
 if grep -q "FIT TO SHIP" "$SUM"; then echo "  ok: summary has headline"; pass=$((pass+1)); else echo "  FAIL: summary headline"; fail=$((fail+1)); fi
@@ -72,7 +73,7 @@ PATH="$BINDIR" GITHUB_OUTPUT="$OUT" GITHUB_STEP_SUMMARY="$SUM" GITHUB_EVENT_NAME
     "$BASH_BIN" "$GATE" >/tmp/gate.log 2>&1
 check "$?" "1" "exit 1 (missing jq)"
 if grep -q "'jq' is not installed" /tmp/gate.log; then echo "  ok: clear missing-jq message"; pass=$((pass+1)); else echo "  FAIL: missing-jq message"; fail=$((fail+1)); fi
-if grep -q "scan_id" "$OUT"; then echo "  FAIL: submitted despite missing jq"; fail=$((fail+1)); else echo "  ok: no submit before dependency check"; pass=$((pass+1)); fi
+if grep -q "scan-id" "$OUT"; then echo "  FAIL: submitted despite missing jq"; fail=$((fail+1)); else echo "  ok: no submit before dependency check"; pass=$((pass+1)); fi
 rm -rf "$BINDIR"
 
 echo "== scenario 7: fit pypi via 'uvx', slug from normalized name =="
@@ -102,12 +103,25 @@ THRONE_TIMEOUT="10m" THRONE_COMMENT="false" \
   bash "$GATE" >/tmp/gate.log 2>&1
 check "$?" "1" "exit 1 (bad timeout)"
 if grep -q "timeout-seconds must be a whole number" /tmp/gate.log; then echo "  ok: clear timeout error"; pass=$((pass+1)); else echo "  FAIL: timeout error message"; fail=$((fail+1)); fi
-if grep -q "scan_id" "$OUT"; then echo "  FAIL: submitted despite bad timeout"; fail=$((fail+1)); else echo "  ok: no submit before validation"; pass=$((pass+1)); fi
+if grep -q "scan-id" "$OUT"; then echo "  FAIL: submitted despite bad timeout"; fail=$((fail+1)); else echo "  ok: no submit before validation"; pass=$((pass+1)); fi
 
 echo "== scenario 11: typo in fail-on -> warns and does not silently block =="
 run_gate "broken-mcp" "good" "notfit"
 check "$GATE_RC" "0" "exit 0 (typo'd token never matches)"
 if grep -q "is not a known verdict" /tmp/gate.log; then echo "  ok: warns on unknown fail-on token"; pass=$((pass+1)); else echo "  FAIL: unknown fail-on warning"; fail=$((fail+1)); fi
+
+echo "== scenario 12: scan vanishes after submit -> fast fail on 404s, not timeout =="
+START=$(date +%s)
+run_gate "vanished-mcp" "good" "not_fit"
+ELAPSED=$(( $(date +%s) - START ))
+check "$GATE_RC" "1" "exit 1 (vanished scan)"
+if grep -q "no longer knows scan" /tmp/gate.log; then echo "  ok: clear vanished-scan message"; pass=$((pass+1)); else echo "  FAIL: vanished-scan message"; fail=$((fail+1)); fi
+if [ "$ELAPSED" -lt 30 ]; then echo "  ok: failed fast (${ELAPSED}s), did not wait out the timeout"; pass=$((pass+1)); else echo "  FAIL: took ${ELAPSED}s (waited out the timeout?)"; fail=$((fail+1)); fi
+
+echo "== scenario 13: transient 500s while polling -> rides them out, then passes =="
+run_gate "wobbly-mcp" "good" "not_fit"
+check "$GATE_RC" "0" "exit 0 (gate passes after transient 500s)"
+check "$(getout verdict)" "fit" "verdict output survives poll hiccups"
 
 echo ""
 echo "RESULT: ${pass} passed, ${fail} failed"
