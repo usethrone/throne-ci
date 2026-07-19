@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Fix the `scan-id` output: the script wrote `scan_id=` while `action.yml` reads `scan-id`, so the output was always empty.
+- Authenticate poll requests with the API key, matching the submit request.
+- Harden the poll loop: ignore transient non-2xx responses and malformed bodies instead of clobbering the last good state, and fail fast with a clear message when the scan 404s three times in a row rather than spinning until the timeout.
 - Preflight-check `curl` and `jq` before running, with a clear message for self-hosted runners.
 - Validate `timeout-seconds` is a positive whole number and fail fast on garbage (e.g. `10m`) instead of a cryptic arithmetic error mid-run.
 - Warn when `fail-on` contains a token that is not a known verdict (e.g. a `notfit` typo) so a misconfigured gate is loud, not silently green.
