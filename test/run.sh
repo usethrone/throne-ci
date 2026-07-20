@@ -26,7 +26,9 @@ run_gate() {
     bash "$GATE" >/tmp/gate.log 2>&1
   GATE_RC=$?
 }
-getout() { grep "^$1=" "$OUT" | head -1 | cut -d= -f2-; }
+# Last match wins, mirroring how GitHub resolves a repeated output name (the
+# gate seeds defaults first, then overwrites them with real values).
+getout() { grep "^$1=" "$OUT" | tail -1 | cut -d= -f2-; }
 
 echo "== scenario 1: fit npm, fail-on=not_fit -> pass =="
 run_gate "@scope/cool-mcp" "good" "not_fit"
@@ -58,6 +60,8 @@ echo "== scenario 5: bad key -> fast fail, no poll =="
 run_gate "@scope/cool-mcp" "bad" "not_fit"
 check "$GATE_RC" "1" "exit 1 (401)"
 if grep -q "rejected the API key" /tmp/gate.log; then echo "  ok: clear 401 message"; pass=$((pass+1)); else echo "  FAIL: 401 message"; fail=$((fail+1)); fi
+check "$(getout verdict)" "unknown" "verdict output seeded on early failure"
+check "$(getout security-verdict)" "not_run" "security-verdict seeded on early failure"
 
 echo "== scenario 6: missing jq -> clear preflight error, no submit =="
 # Run the gate with a PATH that exposes curl but not jq, so the dependency
