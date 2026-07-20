@@ -73,6 +73,8 @@ Lassen Sie den `permissions`-Block weg, wenn Sie keine PR-Kommentare möchten, o
 | `record-url` | öffentlicher Nachweis-Datensatz |
 | `summary` | einzeilige Urteilszusammenfassung |
 
+Die Ausgaben bleiben auch dann definiert, wenn das Gate fehlschlägt: Schlägt der Scan fehl, läuft er in den Timeout oder wird er abgelehnt, sieht ein Schritt, der sie unter `if: always()` liest, `verdict: unknown` und `security-verdict: not_run` statt leerer Zeichenketten.
+
 ```yaml
       - uses: usethrone/throne-ci@v1
         id: throne

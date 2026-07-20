@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Seed every output with a defined default (`verdict=unknown`, `security-verdict=not_run`, empty `reason`/`scan-id`/`summary`, a search-URL `record-url`) before submitting, so steps reading outputs under `if: always()` see those values instead of empty strings when the scan fails, times out, or is rejected.
 - Fix the `scan-id` output: the script wrote `scan_id=` while `action.yml` reads `scan-id`, so the output was always empty.
 - Authenticate poll requests with the API key, matching the submit request.
 - Harden the poll loop: ignore transient non-2xx responses and malformed bodies instead of clobbering the last good state, and fail fast with a clear message when the scan 404s three times in a row rather than spinning until the timeout.

@@ -79,6 +79,8 @@ Drop the `permissions` block if you do not want PR comments, or set `comment-on-
 | `record-url` | public evidence record |
 | `summary` | one-line verdict summary |
 
+Outputs stay defined even when the gate fails: if the scan errors, times out, or is rejected, a step reading them under `if: always()` sees `verdict: unknown` and `security-verdict: not_run` rather than empty strings.
+
 ```yaml
       - uses: usethrone/throne-ci@v1
         id: throne

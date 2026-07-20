@@ -75,6 +75,8 @@ jobs:
 | `record-url` | 公开证据记录的链接 |
 | `summary` | 一行判定摘要 |
 
+即使门禁失败，输出也保持有定义：当扫描出错、超时或被拒绝时，在 `if: always()` 下读取输出的步骤会看到 `verdict: unknown` 和 `security-verdict: not_run`，而不是空字符串。
+
 ## 判定结果的含义
 
 - **fit** — 在两个客户端画像上都完全兼容协议。可以放心发布。

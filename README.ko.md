@@ -73,6 +73,8 @@ PR 코멘트를 원하지 않으면 `permissions` 블록을 제거하거나 `com
 | `record-url` | 공개 증거 기록 |
 | `summary` | 판정 한 줄 요약 |
 
+게이트가 실패해도 출력은 정의된 상태로 유지됩니다. 스캔이 오류로 끝나거나, 시간 초과되거나, 거부된 경우에도 `if: always()`로 출력을 읽는 스텝은 빈 문자열 대신 `verdict: unknown`과 `security-verdict: not_run`을 받습니다.
+
 ```yaml
       - uses: usethrone/throne-ci@v1
         id: throne
