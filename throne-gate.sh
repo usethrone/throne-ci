@@ -99,6 +99,19 @@ verdict_face() {
   esac
 }
 
+# Downstream steps often read these outputs under `if: always()`. Seed every
+# output with a defined default now so a failure path (bad key, scan failure,
+# timeout) never leaves them as empty strings; real values written later win,
+# because GitHub takes the last value for a repeated output name.
+{
+  echo "verdict=unknown"
+  echo "reason="
+  echo "security-verdict=not_run"
+  echo "scan-id="
+  echo "record-url=$(record_url '' '')"
+  echo "summary="
+} >> "$GITHUB_OUTPUT"
+
 # ------------------------------------------------------------------ submit ---
 
 payload=$(jq -nc --arg t "$THRONE_TARGET" '{target:$t}')
