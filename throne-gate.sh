@@ -30,8 +30,13 @@ echo "::add-mask::${THRONE_KEY}"
 THRONE_API="${THRONE_API:-https://api.usethrone.dev}"
 THRONE_API="${THRONE_API%/}" # tolerate a trailing slash
 THRONE_FAIL_ON="${THRONE_FAIL_ON:-not_fit}"
+THRONE_FAIL_ON_SECURITY="${THRONE_FAIL_ON_SECURITY:-off}"
 THRONE_TIMEOUT="${THRONE_TIMEOUT:-600}"
 THRONE_COMMENT="${THRONE_COMMENT:-true}"
+# Optional path to write a SARIF report of the security findings. Empty (the
+# default) means do not write one. When set, callers upload it with
+# github/codeql-action/upload-sarif to surface findings in the Security tab.
+THRONE_SARIF="${THRONE_SARIF:-}"
 
 # timeout-seconds feeds bash arithmetic below; a non-numeric value (e.g. "10m")
 # would blow up mid-run with a cryptic arithmetic error. Guard it up front.
@@ -61,6 +66,23 @@ for _tok in "${_FAIL_TOKENS[@]}"; do
     *) warn "fail-on contains '${_tok}', which is not a known verdict (${_KNOWN_VERDICTS// /, }). It will never match, so the gate may never block. Check for a typo." ;;
   esac
 done
+
+# Security is a second, opt-in gate. `off` (default) keeps the historical
+# behaviour: findings are review material and never block. `review` blocks on
+# any finding; `high` blocks only on a high-severity one. Normalise the input to
+# one of off/review/high. Mirror the fail-on ethos: a typo warns loudly and
+# leaves the gate open rather than silently blocking (or silently disabling a
+# gate the user asked for) — a wrong value is never treated as a stricter one.
+SEC_GATE=$(printf '%s' "$THRONE_FAIL_ON_SECURITY" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
+case "$SEC_GATE" in
+  ''|off|none|never|no|false|0) SEC_GATE="off" ;;
+  review|any|all|findings) SEC_GATE="review" ;;
+  high|high-only|highs) SEC_GATE="high" ;;
+  *)
+    warn "fail-on-security='${THRONE_FAIL_ON_SECURITY}' is not recognised. Use 'off', 'review', or 'high'. Treating it as 'off' (security will not block)."
+    SEC_GATE="off"
+    ;;
+esac
 
 # The clean, canonical record URL for a (type, normalized) target. Mirrors the
 # website's slugFor so the CI link and the public page never disagree.
@@ -107,9 +129,12 @@ verdict_face() {
   echo "verdict=unknown"
   echo "reason="
   echo "security-verdict=not_run"
+  echo "security-findings=0"
+  echo "security-high=0"
   echo "scan-id="
   echo "record-url=$(record_url '' '')"
   echo "summary="
+  echo "sarif-file="
 } >> "$GITHUB_OUTPUT"
 
 # ------------------------------------------------------------------ submit ---
@@ -208,11 +233,45 @@ reason=$(printf '%s' "$scan" | jq -r '.verdict.reason // empty')
 summary=$(printf '%s' "$scan" | jq -r '.verdict.summary // ""')
 sec_verdict=$(printf '%s' "$scan" | jq -r '.security.verdict // "not_run"')
 sec_total=$(printf '%s' "$scan" | jq -r '(.security.findings // []) | length')
-sec_high=$(printf '%s' "$scan" | jq -r '[(.security.findings // [])[] | select((.severity // "" | ascii_upcase) == "HIGH")] | length')
+# Per-severity counts for the breakdown and the high-severity gate. Severity is
+# upper-cased defensively; a severity_count helper keeps the four calls uniform.
+severity_count() { printf '%s' "$scan" | jq -r --arg s "$1" '[(.security.findings // [])[] | select((.severity // "" | ascii_upcase) == $s)] | length'; }
+sec_high=$(severity_count HIGH)
+sec_med=$(severity_count MEDIUM)
+sec_low=$(severity_count LOW)
+# Anything with an unrecognised or missing severity lands in `other`, so the
+# buckets always sum to the total.
+sec_other=$(( sec_total - sec_high - sec_med - sec_low ))
 type=$(printf '%s' "$scan" | jq -r '.target.type // empty')
 norm=$(printf '%s' "$scan" | jq -r '.target.normalized // empty')
 record=$(record_url "$type" "$norm")
 face=$(verdict_face "$verdict" "$reason")
+
+# Human-readable severity breakdown, e.g. "1 high, 2 medium". Only non-empty
+# buckets appear, so a lone medium finding does not read as "0 high, 1 medium".
+sev_bits=""
+add_bit() { [ "$1" -gt 0 ] && sev_bits="${sev_bits:+${sev_bits}, }${1} ${2}"; return 0; }
+add_bit "$sec_high" high
+add_bit "$sec_med" medium
+add_bit "$sec_low" low
+add_bit "$sec_other" other
+
+# Resolve the security gate now so the report, the annotations, and the exit
+# decision all agree. `review` blocks on any finding; `high` on a high one.
+sec_blocks=0
+sec_block_msg=""
+case "$SEC_GATE" in
+  review)
+    if [ "$sec_verdict" = "review" ]; then
+      sec_blocks=1
+      sec_block_msg="security scan returned 'review'${sev_bits:+ (${sev_bits})} and fail-on-security=review"
+    fi ;;
+  high)
+    if [ "$sec_high" -gt 0 ]; then
+      sec_blocks=1
+      sec_block_msg="${sec_high} high-severity security finding(s) and fail-on-security=high"
+    fi ;;
+esac
 
 # Per-client overall: any fail -> FAIL, any warn -> WARN, has steps -> PASS,
 # no steps -> CALIBRATING (an emulation profile not yet released).
@@ -223,22 +282,113 @@ clients_tsv=$(printf '%s' "$scan" | jq -r '
     elif any(.steps[]; .status == "warn") then "warn"
     else "pass" end)')
 
+# Per-finding "SEVERITY<TAB>title" rows for the detail table in the report, so a
+# reviewer sees what the findings are, not just how many. Rows are ordered
+# highest-severity first (an unrecognised severity sorts last but is never
+# dropped). The title falls back through a few field names the API may use, then
+# to a generic label. Tabs and newlines are flattened and pipes escaped so a
+# title can never break the TSV split or the markdown table it feeds.
+findings_tsv=$(printf '%s' "$scan" | jq -r '
+  def rank($x): ($x // "" | tostring | ascii_upcase) as $u
+    | if $u == "HIGH" then 0 elif $u == "MEDIUM" then 1
+      elif $u == "LOW" then 2 else 3 end;
+  (.security.findings // [])
+  | sort_by(rank(.severity))[]
+  | ((.severity // "unknown") | ascii_upcase) + "\t"
+  + ((.title // .message // .name // .description // "Security finding") | tostring
+     | gsub("[\t\n\r]"; " ") | gsub("[|]"; "\\|") | .[0:200])')
+
 # Persist the rest of the outputs.
 {
   echo "verdict=${verdict}"
   echo "reason=${reason}"
   echo "security-verdict=${sec_verdict}"
+  echo "security-findings=${sec_total}"
+  echo "security-high=${sec_high}"
   echo "record-url=${record}"
   printf 'summary<<THRONE_EOF\n%s\nTHRONE_EOF\n' "$summary"
 } >> "$GITHUB_OUTPUT"
+
+# ------------------------------------------------------------------ sarif ---
+# When sarif-file is set, write a SARIF 2.1.0 report of the security findings so
+# it can be uploaded with github/codeql-action/upload-sarif and shown in the
+# Security tab (and inline on the PR). We emit it whenever the scan completed —
+# even with zero findings — because code scanning treats an empty run as "these
+# alerts are resolved" and closes stale ones. It is intentionally NOT written on
+# an early failure (bad key, timeout): the seeded empty `sarif-file` output tells
+# callers to skip the upload rather than wrongly resolving every prior finding.
+if [ -n "$THRONE_SARIF" ]; then
+  # Severity drives both the SARIF `level` (how GitHub badges the alert) and the
+  # `security-severity` property (the numeric score the Security tab sorts on).
+  # Every finding also carries a location: a real file/line when the scan
+  # reported one, otherwise the target itself, so no result is dropped for
+  # lacking a location. Rules are de-duplicated by id and scored by their
+  # highest-severity finding.
+  sarif_loc="${norm:-$THRONE_TARGET}"
+  mkdir -p "$(dirname "$THRONE_SARIF")"
+  printf '%s' "$scan" | jq \
+    --arg ver "${GITHUB_ACTION_REF:-v1}" \
+    --arg loc "$sarif_loc" \
+    --arg record "$record" '
+    def sev($x): ($x // "unknown" | tostring | ascii_upcase);
+    def level($x): sev($x) as $u
+      | if $u == "HIGH" then "error" elif $u == "MEDIUM" then "warning"
+        elif $u == "LOW" then "note" else "warning" end;
+    def score($x): sev($x) as $u
+      | if $u == "HIGH" then "8.0" elif $u == "MEDIUM" then "5.0"
+        elif $u == "LOW" then "2.0" else "0.0" end;
+    def rank($x): sev($x) as $u
+      | if $u == "HIGH" then 3 elif $u == "MEDIUM" then 2
+        elif $u == "LOW" then 1 else 0 end;
+    def ruleid: (.id // .rule // .check // .category // .type // "throne-security") | tostring;
+    def title: (.title // .message // .name // .description // "Security finding") | tostring;
+    (.security.findings // []) as $f
+    | {
+        "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+        version: "2.1.0",
+        runs: [{
+          tool: { driver: {
+            name: "Throne",
+            informationUri: "https://usethrone.dev",
+            version: $ver,
+            rules: ([$f[] | {id: ruleid, sev: (.severity // ""), t: title}]
+              | group_by(.id)
+              | map((max_by(rank(.sev))) as $top | {
+                  id: $top.id,
+                  name: $top.id,
+                  shortDescription: { text: $top.t },
+                  properties: { "security-severity": score($top.sev) }
+                }))
+          }},
+          results: [$f[] | {
+            ruleId: ruleid,
+            level: level(.severity),
+            message: { text: (title + " [" + sev(.severity) + "]") },
+            locations: [{ physicalLocation: (
+              { artifactLocation: { uri: ((.file // .path // $loc) | tostring) } }
+              + (if (.line // .start_line // .startLine)
+                 then { region: { startLine: (((.line // .start_line // .startLine) | tonumber?) // 1) } }
+                 else {} end)
+            )}],
+            properties: { severity: sev(.severity), record: $record }
+          }]
+        }]
+      }' > "$THRONE_SARIF"
+  echo "sarif-file=${THRONE_SARIF}" >> "$GITHUB_OUTPUT"
+  note "Wrote SARIF report (${sec_total} finding(s)) to ${THRONE_SARIF}. Upload it with github/codeql-action/upload-sarif to see findings in the Security tab."
+fi
 
 # ----------------------------------------------------------- report (md) ---
 
 sec_line="SECURITY: $(printf '%s' "$sec_verdict" | tr '[:lower:]' '[:upper:]')"
 if [ "$sec_verdict" = "review" ]; then
   sec_line="${sec_line} · ${sec_total} finding(s)"
-  [ "$sec_high" -gt 0 ] && sec_line="${sec_line}, ${sec_high} high"
-  sec_line="${sec_line} · review material, not a verdict"
+  [ -n "$sev_bits" ] && sec_line="${sec_line} (${sev_bits})"
+  if [ "$sec_blocks" = "1" ]; then
+    sec_line="${sec_line} · blocks the merge (fail-on-security=${SEC_GATE})"
+  else
+    sec_line="${sec_line} · review material, not a verdict"
+  fi
 elif [ "$sec_verdict" = "clean" ]; then
   sec_line="${sec_line} · no findings"
 fi
@@ -259,6 +409,18 @@ build_report() {
   fi
   echo "**${sec_line}**"
   echo ""
+  # List what the findings actually are, highest severity first, so the count in
+  # sec_line is backed by detail a reviewer can act on. Only shown when there is
+  # at least one finding.
+  if [ -n "$findings_tsv" ]; then
+    echo "| Severity | Finding |"
+    echo "|---|---|"
+    while IFS=$'\t' read -r fsev ftitle; do
+      [ -z "$fsev" ] && continue
+      echo "| \`${fsev}\` | ${ftitle} |"
+    done <<< "$findings_tsv"
+    echo ""
+  fi
   echo "[Full evidence record](${record}) · scan \`${scan_id}\`"
   echo ""
   echo "<sub>Executed in a disposable microVM against Claude Code and Cursor client behaviour. Verified by [Throne](https://usethrone.dev).</sub>"
@@ -295,16 +457,31 @@ fi
 
 # ------------------------------------------------------------------- gate ---
 
-blocked=0
+# Two independent axes can block: the compatibility verdict (fail-on) and the
+# security scan (fail-on-security). Collect every reason so the failure names
+# all of them at once instead of hiding the second behind the first.
+block_reasons=()
+
+compat_blocked=0
 IFS=',' read -ra FAILS <<< "$THRONE_FAIL_ON"
 for b in "${FAILS[@]}"; do
   b=$(printf '%s' "$b" | tr -d '[:space:]')
   [ -z "$b" ] && continue
-  if [ "$verdict" = "$b" ]; then blocked=1; fi
+  if [ "$verdict" = "$b" ]; then compat_blocked=1; fi
 done
+[ "$compat_blocked" = "1" ] && block_reasons+=("verdict '${verdict}' is in fail-on (${THRONE_FAIL_ON})")
+[ "$sec_blocks" = "1" ] && block_reasons+=("${sec_block_msg}")
 
-if [ "$blocked" = "1" ]; then
-  die "Verdict '${verdict}' is in fail-on (${THRONE_FAIL_ON}). Blocking. Evidence: ${record}"
+if [ "${#block_reasons[@]}" -gt 0 ]; then
+  why=""
+  for r in "${block_reasons[@]}"; do why="${why:+${why}; }${r}"; done
+  die "Blocking: ${why}. Evidence: ${record}"
+fi
+
+# Not blocking. Surface a review-only security result so it is visible in the
+# Checks UI (not just buried in the summary), and point at the opt-in gate.
+if [ "$sec_verdict" = "review" ]; then
+  warn "Security scan flagged ${sec_total} finding(s)${sev_bits:+ (${sev_bits})} to review — material, not blocking. Set fail-on-security to 'review' or 'high' to gate on it. Evidence: ${record}"
 fi
 
 if [ "$verdict" = "inconclusive" ]; then
