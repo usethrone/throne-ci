@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Add `sarif-file`: write a SARIF 2.1.0 report of the security findings for upload to GitHub code scanning (`github/codeql-action/upload-sarif`). Severity maps to the code-scanning level (`high`→error, `medium`→warning, `low`→note) and to the numeric `security-severity` the Security tab sorts on; rules are de-duplicated by id and every result carries a location (a real file/line when the scan reports one, otherwise the target) so none is dropped. The report is written on any completed scan — including a clean one, so resolved alerts auto-close — but never on an early failure, so a broken run cannot resolve alerts by uploading an empty result set. Exposed as the `sarif-file` output (empty when none was written).
+- Surface the security findings themselves, not just their counts: the job summary and PR comment now include a severity-ordered table of each finding (title + severity), and finding titles fall back through a few field names before a generic label.
+- Add `fail-on-security`: opt in to failing the build on the security scan. `review` blocks on any finding, `high` blocks only on a high-severity one, `off` (default) keeps the historical review-only behaviour. The compatibility verdict and the security scan are independent axes, so both can block and the failure names every reason. An unrecognised value warns and is treated as `off` rather than silently blocking.
+- Surface security findings even when they do not block: the job summary and PR comment now break findings down by severity (e.g. "3 finding(s) (1 high, 2 medium)"), and a review result is emitted as a warning annotation so it is visible in the Checks UI.
+- Add `security-findings` and `security-high` outputs (finding counts), seeded to `0` alongside the other always-defined outputs.
 - Seed every output with a defined default (`verdict=unknown`, `security-verdict=not_run`, empty `reason`/`scan-id`/`summary`, a search-URL `record-url`) before submitting, so steps reading outputs under `if: always()` see those values instead of empty strings when the scan fails, times out, or is rejected.
 - Fix the `scan-id` output: the script wrote `scan_id=` while `action.yml` reads `scan-id`, so the output was always empty.
 - Authenticate poll requests with the API key, matching the submit request.
