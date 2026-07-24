@@ -21,6 +21,13 @@ inputs:
       server could not be assessed (for example it needs credentials).
     required: false
     default: "not_fit"
+  fail-on-security:
+    description: >-
+      Whether the security scan can also fail the build. "off" (default) keeps
+      security as review-only material that never blocks. "review" blocks on any
+      security finding. "high" blocks only when there is a high-severity finding.
+    required: false
+    default: "off"
   comment-on-pr:
     description: >-
       Post a sticky comment with the verdict on the pull request. Requires the
@@ -39,6 +46,14 @@ inputs:
     description: "Give up waiting for the scan after this many seconds."
     required: false
     default: "600"
+  sarif-file:
+    description: >-
+      Path to write a SARIF 2.1.0 report of the security findings. Leave empty
+      (default) to skip it. When set, upload the file with
+      github/codeql-action/upload-sarif to see findings in the Security tab and
+      inline on the pull request.
+    required: false
+    default: ""
 
 outputs:
   verdict:
@@ -48,8 +63,14 @@ outputs:
     description: "When inconclusive: needs_credentials | needs_arguments | needs_environment | unsupported_layout | install_timeout | no_handshake | launch_error"
     value: ${{ steps.gate.outputs.reason }}
   security-verdict:
-    description: "clean | review | not_run (review is material, never changes the compatibility verdict)"
+    description: "clean | review | not_run (review is material; blocks only when fail-on-security opts in)"
     value: ${{ steps.gate.outputs.security-verdict }}
+  security-findings:
+    description: "Total number of security findings (0 when clean or not run)."
+    value: ${{ steps.gate.outputs.security-findings }}
+  security-high:
+    description: "Number of high-severity security findings."
+    value: ${{ steps.gate.outputs.security-high }}
   scan-id:
     description: "The scan id backing this verdict."
     value: ${{ steps.gate.outputs.scan-id }}
@@ -59,6 +80,9 @@ outputs:
   summary:
     description: "One-line verdict summary from the run."
     value: ${{ steps.gate.outputs.summary }}
+  sarif-file:
+    description: "Path to the written SARIF report, or empty when none was written."
+    value: ${{ steps.gate.outputs.sarif-file }}
 
 runs:
   using: "composite"
@@ -70,7 +94,9 @@ runs:
         THRONE_KEY: ${{ inputs.api-key }}
         THRONE_API: ${{ inputs.api-base }}
         THRONE_FAIL_ON: ${{ inputs.fail-on }}
+        THRONE_FAIL_ON_SECURITY: ${{ inputs.fail-on-security }}
         THRONE_TIMEOUT: ${{ inputs.timeout-seconds }}
         THRONE_COMMENT: ${{ inputs.comment-on-pr }}
         THRONE_GH_TOKEN: ${{ inputs.github-token }}
+        THRONE_SARIF: ${{ inputs.sarif-file }}
       run: bash "$GITHUB_ACTION_PATH/throne-gate.sh"
