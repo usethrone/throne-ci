@@ -59,6 +59,7 @@ jobs:
 | `target` | हाँ | | npm पैकेज (`@scope/name` या `name`), `uvx <pypi-name>`, या `https://github.com/owner/repo` |
 | `api-key` | हाँ | | आपकी Throne API key। इसे repo secrets में रखें |
 | `fail-on` | नहीं | `not_fit` | वे फ़ैसले जो merge रोकते हैं, कॉमा से अलग। सख़्त मोड के लिए `inconclusive` जोड़ें |
+| `fail-on-security` | नहीं | `off` | सुरक्षा स्कैन को भी रोकने दें: `review` किसी भी निष्कर्ष पर रोकता है, `high` केवल उच्च-गंभीरता वाले पर, `off` कभी नहीं रोकता |
 | `comment-on-pr` | नहीं | `true` | PR पर फ़ैसले का स्थायी कमेंट पोस्ट करें (`pull-requests: write` चाहिए) |
 | `github-token` | नहीं | `${{ github.token }}` | PR कमेंट के लिए इस्तेमाल होने वाला टोकन |
 | `api-base` | नहीं | `https://api.usethrone.dev` | केवल self-hosted या टेस्टिंग के लिए बदलें |
@@ -71,11 +72,13 @@ jobs:
 | `verdict` | `fit`, `not_fit`, `inconclusive`, या `unknown` |
 | `reason` | inconclusive होने पर: `needs_credentials`, `needs_arguments`, `needs_environment`, `unsupported_layout`, `install_timeout`, `no_handshake`, या `launch_error` |
 | `security-verdict` | `clean`, `review`, या `not_run` |
+| `security-findings` | सुरक्षा निष्कर्षों की कुल संख्या (`0` जब साफ़ हो या न चला हो) |
+| `security-high` | उच्च-गंभीरता वाले सुरक्षा निष्कर्षों की संख्या |
 | `scan-id` | वह स्कैन जिस पर यह फ़ैसला आधारित है |
 | `record-url` | सार्वजनिक प्रमाण रिकॉर्ड |
 | `summary` | एक पंक्ति में फ़ैसले का सार |
 
-गेट फेल होने पर भी आउटपुट परिभाषित रहते हैं: यदि स्कैन में त्रुटि हो, टाइमआउट हो या वह अस्वीकार हो जाए, तो `if: always()` के तहत उन्हें पढ़ने वाले स्टेप को खाली स्ट्रिंग की बजाय `verdict: unknown` और `security-verdict: not_run` मिलता है।
+गेट फेल होने पर भी आउटपुट परिभाषित रहते हैं: यदि स्कैन में त्रुटि हो, टाइमआउट हो या वह अस्वीकार हो जाए, तो `if: always()` के तहत उन्हें पढ़ने वाले स्टेप को खाली स्ट्रिंग की बजाय `verdict: unknown`, `security-verdict: not_run` और `security-findings: 0` मिलता है।
 
 ## फ़ैसले का मतलब
 

@@ -57,6 +57,7 @@ PR 코멘트를 원하지 않으면 `permissions` 블록을 제거하거나 `com
 | `target` | 예 | | npm 패키지(`@scope/name` 또는 `name`), `uvx <pypi-name>`, 또는 `https://github.com/owner/repo` |
 | `api-key` | 예 | | Throne API 키. 저장소 시크릿에 보관하세요 |
 | `fail-on` | 아니오 | `not_fit` | 머지를 막는 판정의 쉼표 구분 목록. 엄격 모드에는 `inconclusive` 추가 |
+| `fail-on-security` | 아니오 | `off` | 보안 스캔도 함께 막게 함: `review`는 발견 사항이 하나라도 있으면 막고, `high`는 심각도 높은 것에서만, `off`는 절대 막지 않음 |
 | `comment-on-pr` | 아니오 | `true` | PR에 판정 코멘트 고정(`pull-requests: write` 필요) |
 | `github-token` | 아니오 | `${{ github.token }}` | PR 코멘트에 사용하는 토큰 |
 | `api-base` | 아니오 | `https://api.usethrone.dev` | 셀프 호스팅이나 테스트에서만 재정의 |
@@ -69,11 +70,13 @@ PR 코멘트를 원하지 않으면 `permissions` 블록을 제거하거나 `com
 | `verdict` | `fit`, `not_fit`, `inconclusive`, 또는 `unknown` |
 | `reason` | inconclusive일 때: `needs_credentials`, `needs_arguments`, `needs_environment`, `unsupported_layout`, `install_timeout`, `no_handshake`, 또는 `launch_error` |
 | `security-verdict` | `clean`, `review`, 또는 `not_run` |
+| `security-findings` | 보안 발견 사항 총 개수(깨끗하거나 실행되지 않았을 때 `0`) |
+| `security-high` | 심각도 높은 보안 발견 사항의 개수 |
 | `scan-id` | 이 판정을 뒷받침하는 스캔 |
 | `record-url` | 공개 증거 기록 |
 | `summary` | 판정 한 줄 요약 |
 
-게이트가 실패해도 출력은 정의된 상태로 유지됩니다. 스캔이 오류로 끝나거나, 시간 초과되거나, 거부된 경우에도 `if: always()`로 출력을 읽는 스텝은 빈 문자열 대신 `verdict: unknown`과 `security-verdict: not_run`을 받습니다.
+게이트가 실패해도 출력은 정의된 상태로 유지됩니다. 스캔이 오류로 끝나거나, 시간 초과되거나, 거부된 경우에도 `if: always()`로 출력을 읽는 스텝은 빈 문자열 대신 `verdict: unknown`, `security-verdict: not_run`, `security-findings: 0`을 받습니다.
 
 ```yaml
       - uses: usethrone/throne-ci@v1

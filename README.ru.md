@@ -59,6 +59,7 @@ jobs:
 | `target` | да | | npm-пакет (`@scope/name` или `name`), `uvx <pypi-name>` или `https://github.com/owner/repo` |
 | `api-key` | да | | ваш API-ключ Throne. Храните его в secrets репозитория |
 | `fail-on` | нет | `not_fit` | вердикты, блокирующие merge, через запятую. Добавьте `inconclusive` для строгого режима |
+| `fail-on-security` | нет | `off` | позволяет сканированию безопасности тоже блокировать merge: `review` блокирует при любой находке, `high` — только при находке высокой серьёзности, `off` не блокирует никогда |
 | `comment-on-pr` | нет | `true` | публиковать закреплённый комментарий с вердиктом в PR (нужен `pull-requests: write`) |
 | `github-token` | нет | `${{ github.token }}` | токен для комментария в PR |
 | `api-base` | нет | `https://api.usethrone.dev` | переопределяйте только для self-hosted или тестов |
@@ -71,6 +72,8 @@ jobs:
 | `verdict` | `fit`, `not_fit`, `inconclusive` или `unknown` |
 | `reason` | при inconclusive: `needs_credentials`, `needs_arguments`, `needs_environment`, `unsupported_layout`, `install_timeout`, `no_handshake` или `launch_error` |
 | `security-verdict` | `clean`, `review` или `not_run` |
+| `security-findings` | общее число находок безопасности (`0`, когда чисто или не запускалось) |
+| `security-high` | число находок безопасности высокой серьёзности |
 | `scan-id` | сканирование, на котором основан вердикт |
 | `record-url` | публичная запись-доказательство |
 | `summary` | вердикт в одну строку |

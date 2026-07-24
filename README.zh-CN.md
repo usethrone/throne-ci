@@ -59,6 +59,7 @@ jobs:
 | `target` | 是 | | npm 包（`@scope/name` 或 `name`）、`uvx <pypi-name>`，或 `https://github.com/owner/repo` |
 | `api-key` | 是 | | 你的 Throne API 密钥。请存放在仓库 secrets 中 |
 | `fail-on` | 否 | `not_fit` | 触发构建失败的判定，逗号分隔。加入 `inconclusive` 即为严格模式 |
+| `fail-on-security` | 否 | `off` | 让安全扫描也参与卡合并：`review` 遇到任何发现即卡住，`high` 仅在高危发现时卡住，`off` 从不卡住 |
 | `comment-on-pr` | 否 | `true` | 在 PR 上发布固定的判定评论（需要 `pull-requests: write`） |
 | `github-token` | 否 | `${{ github.token }}` | 用于发布 PR 评论的令牌 |
 | `api-base` | 否 | `https://api.usethrone.dev` | 仅在自托管或测试时才需要覆盖 |
@@ -71,6 +72,8 @@ jobs:
 | `verdict` | `fit`、`not_fit`、`inconclusive` 或 `unknown` |
 | `reason` | 当 inconclusive 时：`needs_credentials`、`needs_arguments`、`needs_environment`、`unsupported_layout`、`install_timeout`、`no_handshake` 或 `launch_error` |
 | `security-verdict` | `clean`、`review` 或 `not_run` |
+| `security-findings` | 安全发现的总数（干净或未运行时为 `0`） |
+| `security-high` | 高危安全发现的数量 |
 | `scan-id` | 支撑该判定的扫描 ID |
 | `record-url` | 公开证据记录的链接 |
 | `summary` | 一行判定摘要 |
