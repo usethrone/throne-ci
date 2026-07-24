@@ -14,7 +14,9 @@ FIXTURES = {
         "status": "complete",
         "progress": None,
         "verdict": {"value": "fit", "reason": None, "summary": "0 fail / 1 warn across 2 clients"},
-        "security": {"verdict": "review", "findings": [{"severity": "MEDIUM"}]},
+        "security": {"verdict": "review", "findings": [
+            {"severity": "MEDIUM", "id": "unpinned-dependency", "title": "Dependency installed from a floating version range", "file": "package.json", "line": 12},
+        ]},
         "target": {"type": "npm", "normalized": "@scope/cool-mcp"},
         "clients": [
             {"name": "claude code", "steps": [{"status": "pass"}, {"status": "pass"}]},
@@ -42,6 +44,20 @@ FIXTURES = {
         "target": {"type": "pypi", "normalized": "some-pypi-mcp"},
         "clients": [{"name": "claude code", "steps": [{"status": "pass"}]}],
     },
+    # Compatible, but the source scan flagged findings including a high-severity
+    # one. Mixed severities (and a lower-case spelling) exercise the breakdown
+    # and the case-insensitive high-severity gate.
+    "fit-high-sec": {
+        "status": "complete",
+        "verdict": {"value": "fit", "reason": None, "summary": "0 fail / 0 warn across 2 clients"},
+        "security": {"verdict": "review", "findings": [
+            {"severity": "HIGH", "id": "shell-exec", "title": "Spawns a shell with unsanitised input", "file": "src/tools/run.ts", "line": 88},
+            {"severity": "medium", "title": "Reads process environment on startup"},
+            {"severity": "LOW", "id": "verbose-logging"},
+        ]},
+        "target": {"type": "npm", "normalized": "sketchy-mcp"},
+        "clients": [{"name": "claude code", "steps": [{"status": "pass"}]}],
+    },
     "failed-scan": {
         "status": "failed",
         "error": "sandbox exploded",
@@ -62,6 +78,7 @@ TARGET_MAP = {
     "broken-mcp": "not-fit",
     "https://github.com/Owner/Repo-Name": "inc-creds-gh",
     "uvx some-pypi-mcp": "fit-pypi",
+    "sketchy-mcp": "fit-high-sec",
     "flaky-mcp": "failed-scan",
     "weird-mcp": "unknown-verdict",
     # Accepted on POST, then every GET 404s — the scan vanished server-side.
