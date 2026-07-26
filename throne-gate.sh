@@ -434,26 +434,63 @@ echo "evidence: ${record}"
 
 # ------------------------------------------------------- sticky PR comment ---
 # Best-effort: never fail the gate because a comment could not be posted.
-if [ "$THRONE_COMMENT" = "true" ] && [ "${GITHUB_EVENT_NAME:-}" = "pull_request" ] && [ -n "${THRONE_GH_TOKEN:-}" ]; then
-  post_comment() {
-    local marker="<!-- throne-gate -->"
-    local pr repo body existing
-    pr=$(jq -r '.pull_request.number // empty' "${GITHUB_EVENT_PATH}")
-    repo="${GITHUB_REPOSITORY}"
-    [ -z "$pr" ] && return 0
-    body="${marker}"$'\n\n'"${report}"
-    existing=$(GH_TOKEN="$THRONE_GH_TOKEN" gh api "repos/${repo}/issues/${pr}/comments" --paginate 2>/dev/null \
-      | jq -r --arg m "$marker" '.[] | select(.body | contains($m)) | .id' | head -n1)
-    if [ -n "$existing" ]; then
-      GH_TOKEN="$THRONE_GH_TOKEN" gh api -X PATCH "repos/${repo}/issues/comments/${existing}" -f body="$body" >/dev/null
-    else
-      GH_TOKEN="$THRONE_GH_TOKEN" gh api -X POST "repos/${repo}/issues/${pr}/comments" -f body="$body" >/dev/null
-    fi
-  }
-  if command -v gh >/dev/null 2>&1; then
-    post_comment || warn "Could not post the PR comment (needs pull-requests: write permission). The verdict is in the job summary."
+# Talks to the GitHub REST API directly with curl (already a hard dependency),
+# so the comment works on any runner — no gh CLI needed — and on GitHub
+# Enterprise Server, whose runners set GITHUB_API_URL to their own API.
+GH_API="${GITHUB_API_URL:-https://api.github.com}"
+GH_API="${GH_API%/}"
+
+# gh_api METHOD PATH [JSON_BODY] — prints the response body; returns non-zero
+# on a non-2xx status or a network error, so callers can bail with `|| return`.
+gh_api() {
+  local method="$1" path="$2" payload="${3:-}" resp code
+  local args=(-sS -m 30 -w $'\n%{http_code}' -X "$method" "${GH_API}${path}"
+    -H "Authorization: Bearer ${THRONE_GH_TOKEN}"
+    -H "Accept: application/vnd.github+json"
+    -H "X-GitHub-Api-Version: 2022-11-28")
+  [ -n "$payload" ] && args+=(-H "Content-Type: application/json" --data-binary "$payload")
+  resp=$(curl "${args[@]}" 2>/dev/null) || resp=$'\n000'
+  code=$(printf '%s' "$resp" | tail -n1)
+  printf '%s' "$resp" | sed '$d'
+  case "$code" in 2*) return 0 ;; *) return 1 ;; esac
+}
+
+post_comment() {
+  local marker="<!-- throne-gate -->"
+  local pr repo payload page comments existing
+  pr=$(jq -r '.pull_request.number // empty' "${GITHUB_EVENT_PATH:-/dev/null}" 2>/dev/null)
+  repo="${GITHUB_REPOSITORY:-}"
+  # The PR number goes straight into a URL path; accept only digits so a
+  # malformed event payload cannot produce a bogus request.
+  case "$pr" in ''|*[!0-9]*) return 0 ;; esac
+  [ -n "$repo" ] || return 0
+  payload=$(jq -nc --arg b "${marker}"$'\n\n'"${report}" '{body: $b}')
+  # Find our previous comment by its marker, walking pages so a busy PR with
+  # hundreds of comments still updates the sticky comment in place instead of
+  # stacking a new one. 30 pages of 100 is far beyond any real PR; past that we
+  # would rather post a duplicate than loop forever.
+  existing=""
+  for (( page=1; page<=30; page++ )); do
+    comments=$(gh_api GET "/repos/${repo}/issues/${pr}/comments?per_page=100&page=${page}") || return 1
+    existing=$(printf '%s' "$comments" | jq -r --arg m "$marker" \
+      '[.[] | select((.body // "") | contains($m))][0].id // empty' 2>/dev/null) || return 1
+    [ -n "$existing" ] && break
+    [ "$(printf '%s' "$comments" | jq -r 'length' 2>/dev/null)" = "100" ] || break
+  done
+  if [ -n "$existing" ]; then
+    gh_api PATCH "/repos/${repo}/issues/comments/${existing}" "$payload" >/dev/null || return 1
+  else
+    gh_api POST "/repos/${repo}/issues/${pr}/comments" "$payload" >/dev/null || return 1
   fi
-fi
+}
+
+case "${GITHUB_EVENT_NAME:-}" in
+  pull_request|pull_request_target)
+    if [ "$THRONE_COMMENT" = "true" ] && [ -n "${THRONE_GH_TOKEN:-}" ]; then
+      post_comment || warn "Could not post the PR comment (does the workflow grant pull-requests: write?). The verdict is still in the job summary."
+    fi
+    ;;
+esac
 
 # ------------------------------------------------------------------- gate ---
 

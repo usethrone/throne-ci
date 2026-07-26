@@ -4,10 +4,25 @@ POST /api/scan         -> 401 unless Authorization is "Bearer good", else a
                           scan_id chosen from the target (so GET can echo the
                           right fixture).
 GET  /api/scans/<id>   -> the matching fixture, already "complete".
+
+It also mocks just enough of the GitHub REST API for the sticky PR comment
+(list/create/update issue comments), so the comment path is testable offline:
+
+GET   /repos/<o>/<r>/issues/<pr>/comments   -> paginated comment list
+POST  /repos/<o>/<r>/issues/<pr>/comments   -> create (403 for token "denied")
+PATCH /repos/<o>/<r>/issues/comments/<id>   -> update (403 for token "denied")
+
+Plus two white-box control endpoints for the test harness:
+
+GET  /__control/comments?repo=<o>/<r>&pr=<n> -> every stored comment, unpaged
+POST /__control/seed                         -> bulk-add filler comments
+                                                {"repo":.., "pr":.., "count":..}
 """
 
 import json
+import re
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import parse_qs, urlparse
 
 FIXTURES = {
     "fit-npm": {
@@ -91,6 +106,17 @@ TARGET_MAP = {
 _LAST = {}
 _WOBBLES = {"left": 2}
 
+# GitHub-comment mock state: "<owner>/<repo>#<pr>" -> list of comment dicts.
+_COMMENTS = {}
+_NEXT_ID = {"n": 1000}
+
+_GH_LIST_RE = re.compile(r"^/repos/([^/]+/[^/]+)/issues/(\d+)/comments$")
+_GH_EDIT_RE = re.compile(r"^/repos/([^/]+/[^/]+)/issues/comments/(\d+)$")
+
+
+def _pr_key(repo, pr):
+    return f"{repo}#{pr}"
+
 
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):  # quiet
@@ -104,13 +130,38 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _read_json(self):
+        length = int(self.headers.get("Content-Length", 0))
+        return json.loads(self.rfile.read(length) or b"{}")
+
+    # The gate sends "Bearer <github-token>"; "denied" simulates a workflow
+    # token without pull-requests: write, which GitHub answers with a 403.
+    def _gh_denied(self):
+        return self.headers.get("Authorization") == "Bearer denied"
+
     def do_POST(self):
-        if self.path != "/api/scan":
+        path = urlparse(self.path).path
+        if path == "/__control/seed":
+            body = self._read_json()
+            key = _pr_key(body["repo"], body["pr"])
+            comments = _COMMENTS.setdefault(key, [])
+            for i in range(body["count"]):
+                comments.append({"id": _NEXT_ID["n"], "body": f"filler {i}"})
+                _NEXT_ID["n"] += 1
+            return self._send(200, {"ok": True})
+        m = _GH_LIST_RE.match(path)
+        if m:
+            if self._gh_denied():
+                return self._send(403, {"message": "Resource not accessible by integration"})
+            comment = {"id": _NEXT_ID["n"], "body": self._read_json().get("body", "")}
+            _NEXT_ID["n"] += 1
+            _COMMENTS.setdefault(_pr_key(m.group(1), int(m.group(2))), []).append(comment)
+            return self._send(201, comment)
+        if path != "/api/scan":
             return self._send(404, {"error": "nope"})
         if self.headers.get("Authorization") != "Bearer good":
             return self._send(401, {"error": "invalid API key"})
-        length = int(self.headers.get("Content-Length", 0))
-        target = json.loads(self.rfile.read(length) or b"{}").get("target", "")
+        target = self._read_json().get("target", "")
         key = TARGET_MAP.get(target)
         if not key:
             return self._send(400, {"error": f"unknown target {target}"})
@@ -118,9 +169,36 @@ class Handler(BaseHTTPRequestHandler):
         _LAST[scan_id] = key
         self._send(200, {"scan_id": scan_id, "status": "queued"})
 
+    def do_PATCH(self):
+        m = _GH_EDIT_RE.match(urlparse(self.path).path)
+        if not m:
+            return self._send(404, {"error": "nope"})
+        if self._gh_denied():
+            return self._send(403, {"message": "Resource not accessible by integration"})
+        cid = int(m.group(2))
+        for comments in _COMMENTS.values():
+            for c in comments:
+                if c["id"] == cid:
+                    c["body"] = self._read_json().get("body", "")
+                    return self._send(200, c)
+        self._send(404, {"message": "Not Found"})
+
     def do_GET(self):
-        if self.path.startswith("/api/scans/"):
-            scan_id = self.path.rsplit("/", 1)[-1]
+        parsed = urlparse(self.path)
+        path = parsed.path
+        if path == "/__control/comments":
+            q = parse_qs(parsed.query)
+            key = _pr_key(q["repo"][0], int(q["pr"][0]))
+            return self._send(200, _COMMENTS.get(key, []))
+        m = _GH_LIST_RE.match(path)
+        if m:
+            q = parse_qs(parsed.query)
+            page = int(q.get("page", ["1"])[0])
+            per = int(q.get("per_page", ["30"])[0])
+            comments = _COMMENTS.get(_pr_key(m.group(1), int(m.group(2))), [])
+            return self._send(200, comments[(page - 1) * per : page * per])
+        if path.startswith("/api/scans/"):
+            scan_id = path.rsplit("/", 1)[-1]
             key = _LAST.get(scan_id)
             if not key or key == "vanished":
                 return self._send(404, {"error": "scan not found"})

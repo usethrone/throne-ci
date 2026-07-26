@@ -33,6 +33,27 @@ run_gate() {
 # gate seeds defaults first, then overwrites them with real values).
 getout() { grep "^$1=" "$OUT" | tail -1 | cut -d= -f2-; }
 
+run_gate_pr() {
+  # $1 target  $2 github-token  $3 pr-number  [$4 event name, default
+  #   pull_request]  [$5 comment-on-pr, default true]
+  # Fakes the PR event context and points GITHUB_API_URL at the stub, so the
+  # sticky-comment path runs for real against the mocked GitHub API.
+  # -> sets GATE_RC, OUT, SUM
+  OUT=$(mktemp); SUM=$(mktemp); EVENT=$(mktemp)
+  printf '{"pull_request": {"number": %s}}' "$3" > "$EVENT"
+  GITHUB_OUTPUT="$OUT" GITHUB_STEP_SUMMARY="$SUM" \
+  GITHUB_EVENT_NAME="${4:-pull_request}" GITHUB_EVENT_PATH="$EVENT" \
+  GITHUB_REPOSITORY="acme/widget" GITHUB_API_URL="$API" \
+  THRONE_TARGET="$1" THRONE_KEY="good" THRONE_API="$API" THRONE_FAIL_ON="not_fit" \
+  THRONE_GH_TOKEN="$2" THRONE_COMMENT="${5:-true}" \
+  THRONE_TIMEOUT="60" THRONE_POLL_INTERVAL="1" \
+    bash "$GATE" >/tmp/gate.log 2>&1
+  GATE_RC=$?
+  rm -f "$EVENT"
+}
+# All stored comments for acme/widget#<pr>, straight from the stub's memory.
+pr_comments() { curl -s "${API}/__control/comments?repo=acme/widget&pr=$1"; }
+
 echo "== scenario 1: fit npm, fail-on=not_fit -> pass =="
 run_gate "@scope/cool-mcp" "good" "not_fit"
 check "$GATE_RC" "0" "exit 0 (gate passes)"
@@ -222,6 +243,43 @@ run_gate "@scope/cool-mcp" "bad" "not_fit" "off" "$SARIF"
 check "$GATE_RC" "1" "exit 1 (bad key)"
 check "$(getout sarif-file)" "" "sarif-file output empty on early failure"
 if [ ! -e "$SARIF" ]; then echo "  ok: no SARIF file written on early failure"; pass=$((pass+1)); else echo "  FAIL: wrote SARIF despite early failure"; fail=$((fail+1)); rm -f "$SARIF"; fi
+
+echo "== scenario 26: PR event -> posts the sticky comment via the REST API (no gh) =="
+run_gate_pr "@scope/cool-mcp" "gh-token" "101"
+check "$GATE_RC" "0" "exit 0 (gate passes)"
+check "$(pr_comments 101 | jq -r 'length')" "1" "exactly one comment posted"
+if pr_comments 101 | jq -r '.[0].body' | grep -q "<!-- throne-gate -->"; then echo "  ok: comment carries the sticky marker"; pass=$((pass+1)); else echo "  FAIL: sticky marker missing"; fail=$((fail+1)); fi
+if pr_comments 101 | jq -r '.[0].body' | grep -q "FIT TO SHIP"; then echo "  ok: comment carries the verdict headline"; pass=$((pass+1)); else echo "  FAIL: verdict headline missing"; fail=$((fail+1)); fi
+
+echo "== scenario 27: second run on the same PR -> updates the comment in place, no duplicate =="
+run_gate_pr "broken-mcp" "gh-token" "101"
+check "$GATE_RC" "1" "exit 1 (not_fit blocks; comment still posted first)"
+check "$(pr_comments 101 | jq -r 'length')" "1" "still exactly one comment (sticky update)"
+if pr_comments 101 | jq -r '.[0].body' | grep -q "NOT FIT TO SHIP"; then echo "  ok: comment body updated to the new verdict"; pass=$((pass+1)); else echo "  FAIL: comment not updated"; fail=$((fail+1)); fi
+
+echo "== scenario 28: sticky comment found beyond page 1 (busy PR, pagination) =="
+# 150 filler comments push ours onto page 2 of per_page=100; a first run posts
+# it there, a second must still find and update it rather than duplicating.
+curl -s -X POST "${API}/__control/seed" -d '{"repo":"acme/widget","pr":202,"count":150}' >/dev/null
+run_gate_pr "@scope/cool-mcp" "gh-token" "202"
+run_gate_pr "@scope/cool-mcp" "gh-token" "202"
+check "$(pr_comments 202 | jq -r '[.[] | select(.body | contains("<!-- throne-gate -->"))] | length')" "1" "one sticky comment among 151 (found across pages)"
+
+echo "== scenario 29: token without write access -> warns, gate still passes =="
+run_gate_pr "@scope/cool-mcp" "denied" "303"
+check "$GATE_RC" "0" "exit 0 (comment failure never fails the gate)"
+check "$(pr_comments 303 | jq -r 'length')" "0" "no comment stored (403 from GitHub)"
+if grep -q "Could not post the PR comment" /tmp/gate.log; then echo "  ok: warns about the failed comment"; pass=$((pass+1)); else echo "  FAIL: missing comment-failure warning"; fail=$((fail+1)); fi
+
+echo "== scenario 30: pull_request_target event also posts the comment =="
+run_gate_pr "@scope/cool-mcp" "gh-token" "404" "pull_request_target"
+check "$GATE_RC" "0" "exit 0"
+check "$(pr_comments 404 | jq -r 'length')" "1" "comment posted on pull_request_target"
+
+echo "== scenario 31: comment-on-pr=false -> no comment even on a PR event =="
+run_gate_pr "@scope/cool-mcp" "gh-token" "505" "pull_request" "false"
+check "$GATE_RC" "0" "exit 0"
+check "$(pr_comments 505 | jq -r 'length')" "0" "no comment when opted out"
 
 echo ""
 echo "RESULT: ${pass} passed, ${fail} failed"

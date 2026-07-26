@@ -54,7 +54,7 @@ jobs:
           api-key: ${{ secrets.THRONE_API_KEY }}
 ```
 
-Drop the `permissions` block if you do not want PR comments, or set `comment-on-pr: false`. The PR comment uses the `gh` CLI, which is preinstalled on GitHub-hosted runners; on a self-hosted runner without it, the comment is skipped and the verdict still lands in the job summary.
+Drop the `permissions` block if you do not want PR comments, or set `comment-on-pr: false`. The comment is posted straight to the GitHub REST API with `curl`, so it works on any runner — GitHub-hosted, self-hosted, or GitHub Enterprise Server (the action follows `GITHUB_API_URL`) — with no extra tooling. It fires on `pull_request` and `pull_request_target` events, updates in place on every push, and if it cannot be posted (for example the token lacks `pull-requests: write`) the gate still runs and the verdict still lands in the job summary.
 
 ## Inputs
 
